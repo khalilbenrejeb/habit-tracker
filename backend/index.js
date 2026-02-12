@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { supabase, testConnection } from './config/database.js';
 import { logger } from './utils/logger.js';
 import routes from './routes/index.js';
 import { loggingMiddleware, errorLoggingMiddleware } from './middleware/logging.js';
@@ -25,15 +24,13 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-const startServer = async () => {
+const startServer = () => {
   try {
-    // Test Supabase connection
-    await testConnection();
-
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`, {
         env: process.env.NODE_ENV,
-        port: PORT
+        port: PORT,
+        database: 'File-based (JSON)'
       });
     });
   } catch (error) {

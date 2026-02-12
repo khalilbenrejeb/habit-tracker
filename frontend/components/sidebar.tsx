@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { LayoutDashboard, Users, Target, LogOut } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/" },
@@ -12,11 +13,13 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
-const router = useRouter()
+  const router = useRouter()
+  const { logout } = useAuth()
 
-const handleLogout = () => {
-  router.push("/login")
-}
+  const handleLogout = () => {
+    logout()
+    router.push("/")
+  }
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-sidebar-background">
       <div className="flex h-full flex-col">

@@ -1,3 +1,9 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import LoginPage from './login/page'
 import { Sidebar } from "@/components/sidebar"
 
 const stats = [
@@ -6,7 +12,23 @@ const stats = [
   { label: "Total Habits", value: "34,892" },
 ]
 
-export default function DashboardPage() {
+export default function HomePage() {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />

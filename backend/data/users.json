@@ -1,0 +1,22 @@
+[
+  {
+    "id": "f3099f75-d3e3-45ee-9a1e-1396d5555c8e",
+    "email": "khalil.benrejeb@medtech.tn",
+    "password": "$2a$10$8FOf.Te2.C6r00G2/uXDFOtN0uh1jmy8Wdd7NoNh/DvaYXphszjpa",
+    "firstName": "Khalil",
+    "lastName": "Benrejeb",
+    "role": "admin",
+    "createdAt": "2026-02-12T17:35:21.041Z",
+    "updatedAt": "2026-02-12T17:35:21.041Z"
+  },
+  {
+    "id": "5c216ac1-bd1a-495e-8406-9692c6ead3b7",
+    "email": "mouradmalki@medtech.tn",
+    "password": "$2a$10$4f6ruM3pRdNfkAksuT425udfwDjWKYdYfr3pe2/s6BiE8D8iz2upa",
+    "firstName": "Mourad",
+    "lastName": "Malki",
+    "role": "admin",
+    "createdAt": "2026-02-12T17:35:21.121Z",
+    "updatedAt": "2026-02-12T17:35:21.121Z"
+  }
+]
