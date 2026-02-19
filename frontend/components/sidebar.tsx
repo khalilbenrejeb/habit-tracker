@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, Target, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Target, Box,CheckCircle, LogOut, Home } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -11,6 +11,8 @@ import { ThemeToggle } from './theme-toggle'
 const navItems = [
   { icon: LayoutDashboard, label: 'Overview', href: '/' },
   { icon: Users, label: 'Users', href: '/users' },
+  { icon: Box, label: 'Habits', href: '/habits' },
+  { icon: CheckCircle, label: 'feedback', href: '/feedback' },
 ]
 
 export function Sidebar() {
@@ -28,7 +30,7 @@ export function Sidebar() {
       <div className="flex h-full flex-col">
         <div className="flex h-16 items-center gap-2 border-b border-gray-200 px-6 dark:border-gray-700">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 text-white">
-            <Target className="h-5 w-5" />
+            <Home className="h-5 w-5" />
           </div>
           <span className="text-lg font-semibold">Habit Tracker</span>
         </div>

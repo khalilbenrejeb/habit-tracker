@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import LoginPage from './login/page'
 import { Sidebar } from '@/components/sidebar'
 
+
+
 const stats = [
   { label: 'Total Users', value: '0' },
   { label: 'Active Users', value: '0' },
@@ -13,7 +15,7 @@ const stats = [
 ]
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
 
   if (isLoading) {
     return (
@@ -35,7 +37,11 @@ export default function HomePage() {
       <div className="pl-64">
         <main className="p-8">
           <h1 className="mb-8 text-2xl font-semibold">Overview</h1>
-
+          {isAuthenticated && (
+  <p className="mb-8 text-center text-2xl font-semibold text-gray-900 dark:text-white">
+    Hello, you're logged in as {user?.email || 'Unknown'}
+  </p>
+)}
           <div className="flex flex-col gap-4">
             {stats.map((stat) => (
               <div
