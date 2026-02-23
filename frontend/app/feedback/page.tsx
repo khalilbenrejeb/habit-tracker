@@ -7,24 +7,27 @@ import { useAuth } from '@/contexts/AuthContext'
 
 interface Report {
   id: number
-  user: string
-  message: string
+  email: string
+  msgfeedback: string
 }
 
 export default function ReportsPage() {
   const { user } = useAuth() // assume your AuthContext gives { user: { email } }
-  const [reports, setReports] = useState<Report[]>([])
   const [msg, setMsg] = useState('')
+  const [reports, setReports] = useState<Report[]>([]);
+    useEffect(() => {
+      fetch("http://localhost:3001/api/adminfeedbacks")
+        .then(async (res) => {
+          if (!res.ok) throw new Error(await res.text());
+          return res.json();
+        })
+        .then((data: any) => setReports(Array.isArray(data) ? data as Report[] : []))
+        .catch((err) => {
+          console.error("Failed fetching reports:", err);
+          setReports([]);
+        });
+    }, []);
 
-  const fetchReports = async () => {
-    const res = await fetch('/api/reports')
-    const data = await res.json()
-    setReports(data)
-  }
-
-  useEffect(() => {
-    fetchReports()
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,8 +89,8 @@ export default function ReportsPage() {
                 <tbody>
                   {reports.map((report) => (
                     <tr key={report.id} className="border-b border-gray-200 dark:border-gray-700 last:border-0">
-                      <td className="p-4 text-gray-900 dark:text-white">{report.user}</td>
-                      <td className="p-4 text-gray-600 dark:text-gray-400">{report.message}</td>
+                      <td className="p-4 text-gray-900 dark:text-white">{report.email}</td>
+                      <td className="p-4 text-gray-600 dark:text-gray-400">{report.msgfeedback}</td>
                     </tr>
                   ))}
                   {reports.length === 0 && (

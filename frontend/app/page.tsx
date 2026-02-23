@@ -1,6 +1,5 @@
-'use client'
-
-import { useEffect } from 'react'
+'use client' // if Next.js App Router
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import LoginPage from './login/page'
@@ -8,15 +7,36 @@ import { Sidebar } from '@/components/sidebar'
 
 
 
-const stats = [
-  { label: 'Total Users', value: '0' },
-  { label: 'Active Users', value: '0' },
-  { label: 'Total Habits', value: '0' },
-]
+
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading, user } = useAuth()
+  const [adminCount, setAdminCount] = useState(0);
+  const [userCount, setUserCount] = useState(0);
+  const [habitCount, setHabitCount] = useState(0);
 
+  useEffect(() => {
+  fetch('http://localhost:3001/api/adminusers/count')
+    .then(res => res.json())
+    .then(data => setAdminCount(data.count))
+    .catch(err => console.error(err));
+
+  fetch('http://localhost:3001/api/users/count')
+    .then(res => res.json())
+    .then(data => setUserCount(data.count))
+    .catch(err => console.error(err));
+
+  fetch('http://localhost:3001/api/habits/count')
+    .then(res => res.json())
+    .then(data => setHabitCount(data.count))
+    .catch(err => console.error(err));
+}, []);
+
+  const { isAuthenticated, isLoading, user } = useAuth()
+  const stats = [
+  { label: 'Total Users', value: userCount },
+  { label: 'Total Admin Users', value: adminCount },
+  { label: 'Total Habits', value: habitCount },
+]
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex items-center justify-center">
