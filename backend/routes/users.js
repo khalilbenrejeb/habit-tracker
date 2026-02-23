@@ -8,8 +8,7 @@ import { handleAsyncError } from '../utils/generics.js';
 
 const router = express.Router();
 
-router.use(authMiddleware);
-
+/*
 // Get all users (admin only)
 router.get('/', onlyAdmin, validateQuery(paginationSchema), handleAsyncError(userController.getUsers));
 
@@ -24,5 +23,5 @@ router.put('/:id', onlyAdmin, validate(updateUserSchema), handleAsyncError(userC
 
 // Delete user (admin only)
 router.delete('/:id', onlyAdmin, handleAsyncError(userController.deleteUser));
-
+*/
 export default router;

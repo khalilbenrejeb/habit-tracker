@@ -5,6 +5,7 @@ import { logger } from './utils/logger.js';
 import routes from './routes/index.js';
 import { loggingMiddleware, errorLoggingMiddleware } from './middleware/logging.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import supabase from './supabaseclient.js'; // default import now
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,9 +20,7 @@ app.use(errorLoggingMiddleware);
 // Routes
 app.use('/api', routes);
 
-// Error handling
-app.use(notFoundHandler);
-app.use(errorHandler);
+
 
 // Start server
 const startServer = () => {
