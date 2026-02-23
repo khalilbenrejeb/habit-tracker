@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent } from "@/components/ui/card";
+import LoginPage from '../login/page'
+import { useAuth } from "@/contexts/AuthContext";
 
 type Habit = {
   id: string;
@@ -14,6 +16,7 @@ type Habit = {
 };
 
 export default function HabitsPage() {
+  const { isAuthenticated, isLoading, user } = useAuth()
   const [habits, setHabits] = useState<Habit[]>([]);
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -60,7 +63,9 @@ export default function HabitsPage() {
     if (lvl === "easy") return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
     return "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
   };
-
+if (!isAuthenticated) {
+    return <LoginPage />
+  }
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
       <Sidebar />

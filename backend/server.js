@@ -48,12 +48,14 @@ app.get('/api/adminusers', async (req, res) => {
 });
 
 // add feedback
-app.post('/api/feedback', async (req, res) => {
-  const { email, msgFeedback } = req.body;
-  const { data, error } = await supabase.from('adminfeedbacks').insert([{ email, msgFeedback }]);
-  if (error) return res.status(500).json({ error });
-  res.json(data);
-});
+app.post('/api/adminfeedbacks', async (req, res) => {
+  const { email, msgfeedback } = req.body  // <-- lowercase here
+  const { data, error } = await supabase
+    .from('adminfeedbacks')
+    .insert([{ email, msgfeedback }])  // <-- lowercase here
+  if (error) return res.status(500).json({ error })
+  res.json(data)
+})
 
 // get habits
 app.get('/api/habits', async (req, res) => {

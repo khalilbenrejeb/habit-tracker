@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent } from "@/components/ui/card";
+import LoginPage from '../login/page'
+import { useAuth } from "@/contexts/AuthContext";
 
 type User = {
   id: string;
@@ -12,7 +14,9 @@ type User = {
   logins?: number | null;
 };
 
+
 export default function UsersPage() {
+  const { isAuthenticated} = useAuth()
   const [users, setUsers] = useState<User[]>([]);
   useEffect(() => {
     fetch("http://localhost:3001/api/users")
@@ -26,7 +30,9 @@ export default function UsersPage() {
         setUsers([]);
       });
   }, []);
-
+if (!isAuthenticated) {
+    return <LoginPage />
+  }
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
       <Sidebar />
