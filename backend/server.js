@@ -117,6 +117,37 @@ app.get('/api/users/count', optionalAuth, async (req, res) => {
   res.json({ count });
 });
 
+app.get('/api/userfeedback/count', async (req, res) => {
+  try {
+    const { count, error } = await supabase
+      .from('userfeedback')
+      .select('*', { count: 'exact', head: true }); // head:true means just get the count
+
+    if (error) throw error;
+    res.status(200).json({ count: count || 0 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ count: 0 });
+  }
+});
+
+// 2. ROUTE FOR THE RECENT LIST
+app.get('/api/userfeedback', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('userfeedback')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+    res.status(200).json(data || []);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json([]);
+  }
+});
+
 const PORT = 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
