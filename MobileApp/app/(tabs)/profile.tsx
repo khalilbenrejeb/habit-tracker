@@ -1,14 +1,17 @@
-import React from 'react';
-import { StyleSheet, View, SafeAreaView, ScrollView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, SafeAreaView, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import { Avatar, Button, Card, Text, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  
+  // Toggle this to 'true' to see the actual profile
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Helper for small stat highlights
-  const ProfileStat = ({ label, value, icon }: any) => (
+  const ProfileStat = ({ label, value, icon }: { label: string, value: string, icon: any }) => (
     <View style={styles.statBox}>
       <MaterialCommunityIcons name={icon} size={20} color="#615EFC" />
       <Text style={styles.statValue}>{value}</Text>
@@ -16,6 +19,36 @@ export default function ProfileScreen() {
     </View>
   );
 
+  // --- GUEST VIEW (If not logged in) ---
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <View style={styles.guestIconCircle}>
+          <MaterialCommunityIcons name="account-lock-outline" size={60} color="#615EFC" />
+        </View>
+        <Text style={styles.userName}>Join the Grind</Text>
+        <Text style={styles.guestSubtitle}>
+          Log in to track your tasks, earn achievements, and access your personal AI assistant.
+        </Text>
+        
+        <Button 
+          mode="contained" 
+          onPress={() => router.push('/(auth)/login')} 
+          style={styles.loginBtn}
+          contentStyle={{ height: 55 }}
+          labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+        >
+          Login / Sign Up
+        </Button>
+
+        <TouchableOpacity onPress={() => setIsLoggedIn(true)} style={{marginTop: 20}}>
+           <Text style={{color: '#94A3B8'}}>Preview Profile (Dev Only)</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  // --- PROFILE VIEW (If logged in) ---
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -63,7 +96,7 @@ export default function ProfileScreen() {
           <Card.Actions style={styles.assistantActions}>
             <Button 
               mode="contained" 
-              onPress={() => router.push('/assistant' as any)}
+              onPress={() => router.push('/assistant')}
               style={styles.assistantBtn}
               icon="sparkles"
             >
@@ -74,14 +107,23 @@ export default function ProfileScreen() {
 
         {/* BADGES SECTION */}
         <Text style={styles.sectionTitle}>Achievements</Text>
-        <View style={styles.badgeContainer}>
+        <div style={styles.badgeContainer}>
           {['Early Bird', 'Consistency King', 'Water Champ'].map((badge, i) => (
             <View key={i} style={styles.badge}>
               <MaterialCommunityIcons name="shield-check" size={16} color="#059669" />
               <Text style={styles.badgeText}>{badge}</Text>
             </View>
           ))}
-        </View>
+        </div>
+
+        {/* LOGOUT BUTTON (Optional) */}
+        <Button 
+          onPress={() => setIsLoggedIn(false)} 
+          textColor="#E11D48" 
+          style={{ marginTop: 30 }}
+        >
+          Logout
+        </Button>
 
       </ScrollView>
     </SafeAreaView>
@@ -92,6 +134,24 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   scrollContent: { padding: 20 },
   
+  // Guest View Styles
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
+  guestIconCircle: { 
+    width: 120, 
+    height: 120, 
+    borderRadius: 60, 
+    backgroundColor: '#FFF', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    marginBottom: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10
+  },
+  guestSubtitle: { fontSize: 16, color: '#64748B', textAlign: 'center', marginTop: 10, lineHeight: 24 },
+  loginBtn: { width: '100%', borderRadius: 16, backgroundColor: '#615EFC', marginTop: 30 },
+
   // Profile Header
   profileHeader: {
     alignItems: 'center',

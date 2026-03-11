@@ -38,20 +38,6 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* NEW: PROFILE AVATAR SECTION */}
-        <View style={styles.avatarSection}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarLetter}>{username.charAt(0).toUpperCase()}</Text>
-          </View>
-          <RNTextInput
-            style={styles.usernameInput}
-            value={username}
-            onChangeText={setUsername}
-            placeholder="Edit Name"
-          />
-          <Text style={styles.userStatus}>Free Member</Text>
-        </View>
 
         {/* SECTION: PREFERENCES */}
         <Text style={styles.sectionHeader}>Preferences</Text>
