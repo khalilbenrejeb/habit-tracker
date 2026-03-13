@@ -15,12 +15,13 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-
-// Import your supabase client
 import { supabase } from '../../supabase';
+import { useTheme } from '../../context/ThemeContext'; // Import your hook
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colors, isDarkMode } = useTheme();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      // 1. Check your manual 'users' table
+      // Checking manual 'users' table as requested
       const { data, error } = await supabase
         .from('users') 
         .select('*')
@@ -44,7 +45,6 @@ export default function LoginScreen() {
       if (error || !data) {
         Alert.alert("Login Failed", "Invalid email or password.");
       } else {
-        // 2. Go to the main (tabs) index page
         router.replace('/(tabs)'); 
       }
     } catch (err) {
@@ -54,8 +54,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
         style={styles.flex}
@@ -64,20 +64,29 @@ export default function LoginScreen() {
           <View style={styles.inner}>
             
             <View style={styles.header}>
-              <View style={styles.logoPlaceholder}>
+              <View style={[styles.logoPlaceholder, { backgroundColor: colors.primary }]}>
                 <Text style={styles.logoText}>DG</Text>
               </View>
-              <Text style={styles.titleText}>Welcome Back</Text>
-              <Text style={styles.subtitleText}>Log in to continue your Daily Grind.</Text>
+              <Text style={[styles.titleText, { color: colors.text }]}>Welcome Back</Text>
+              <Text style={[styles.subtitleText, { color: colors.subtext }]}>
+                Log in to continue your Daily Grind.
+              </Text>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email Address</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Email Address</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input, 
+                    { 
+                      backgroundColor: colors.card, 
+                      color: colors.text, 
+                      borderColor: colors.divider 
+                    }
+                  ]}
                   placeholder="name@example.com"
-                  placeholderTextColor="#9FB3C8"
+                  placeholderTextColor={colors.subtext}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={email}
@@ -87,11 +96,18 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Password</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input, 
+                    { 
+                      backgroundColor: colors.card, 
+                      color: colors.text, 
+                      borderColor: colors.divider 
+                    }
+                  ]}
                   placeholder="Enter your password"
-                  placeholderTextColor="#9FB3C8"
+                  placeholderTextColor={colors.subtext}
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
@@ -100,7 +116,11 @@ export default function LoginScreen() {
               </View>
 
               <TouchableOpacity 
-                style={[styles.loginButton, loading && styles.buttonDisabled]} 
+                style={[
+                  styles.loginButton, 
+                  { backgroundColor: colors.primary },
+                  loading && styles.buttonDisabled
+                ]} 
                 onPress={handleLogin}
                 activeOpacity={0.9}
                 disabled={loading}
@@ -114,9 +134,9 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => router.push('/signup')}>
-                <Text style={styles.signUpText}>Sign Up</Text>
+              <Text style={[styles.footerText, { color: colors.subtext }]}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/signup' as any)}>
+                <Text style={[styles.signUpText, { color: colors.primary }]}>Sign Up</Text>
               </TouchableOpacity>
             </View>
 
@@ -128,7 +148,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F4F8' },
+  container: { flex: 1 },
   flex: { flex: 1 },
   inner: { flex: 1, paddingHorizontal: 30, justifyContent: 'center' },
   header: { alignItems: 'center', marginBottom: 40 },
@@ -136,42 +156,37 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 25,
-    backgroundColor: '#615EFC',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
     ...Platform.select({
-      web: { boxShadow: '0px 4px 10px rgba(97, 94, 252, 0.3)' },
-      default: { elevation: 8 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10 },
+      android: { elevation: 8 },
     }),
   },
   logoText: { color: '#FFF', fontSize: 28, fontWeight: '800' },
-  titleText: { fontSize: 28, fontWeight: '800', color: '#102A43', marginBottom: 8 },
-  subtitleText: { fontSize: 16, color: '#627D98', textAlign: 'center' },
+  titleText: { fontSize: 28, fontWeight: '800', marginBottom: 8 },
+  subtitleText: { fontSize: 16, textAlign: 'center' },
   form: { width: '100%' },
   inputContainer: { marginBottom: 20 },
-  label: { fontSize: 14, fontWeight: '700', color: '#334E68', marginBottom: 8, marginLeft: 4 },
+  label: { fontSize: 14, fontWeight: '700', marginBottom: 8, marginLeft: 4 },
   input: {
-    backgroundColor: '#FFF',
     height: 55,
     borderRadius: 16,
     paddingHorizontal: 20,
     fontSize: 16,
-    color: '#102A43',
     borderWidth: 1,
-    borderColor: '#D9E2EC',
   },
   loginButton: {
-    backgroundColor: '#615EFC',
     height: 55,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
   },
-  buttonDisabled: { backgroundColor: '#A5A3FF' },
+  buttonDisabled: { opacity: 0.6 },
   loginButtonText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 40 },
-  footerText: { color: '#627D98', fontSize: 15 },
-  signUpText: { color: '#615EFC', fontWeight: '700', fontSize: 15 },
+  footerText: { fontSize: 15 },
+  signUpText: { fontWeight: '700', fontSize: 15 },
 });

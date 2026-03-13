@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, SafeAreaView, Platform, Animated } from 'react-native';
-import { Button, Card, Text, Avatar, Surface } from 'react-native-paper';
+import { StyleSheet, View, SafeAreaView, Platform, Animated, StatusBar } from 'react-native';
+import { Button, Text, Avatar, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext'; // Ensure this path is correct
 
 type Step = 'start' | 'addHabit' | 'changeUsername' | 'aboutApp' | 'done' | 'loop';
 
 export default function Assistant() {
   const [step, setStep] = useState<Step>('start');
   const router = useRouter();
+  const { colors, isDarkMode } = useTheme();
   const fadeAnim = new Animated.Value(0);
 
-  // Simple fade-in effect when the message changes
   useEffect(() => {
     fadeAnim.setValue(0);
     Animated.timing(fadeAnim, {
@@ -32,30 +32,31 @@ export default function Assistant() {
       case 'loop': return "I'm still here! What else do you need to know? 😏";
       case 'addHabit': return "Easy! Go to the 'Add' tab ➕, pick a habit (like 'Drink Water'), and hit Create. It will appear on your Home screen instantly.";
       case 'changeUsername': return "Head over to Settings ⚙️. You can tap your name at the top to edit it. We'll remember you!";
-      case 'aboutApp': return "This app is built to help you crush your goals. No fluff, just discipline. track daily and watch your progress climb! 🚀";
+      case 'aboutApp': return "This app is built to help you crush your goals. No fluff, just discipline. Track daily and watch your progress climb! 🚀";
       case 'done': return "Awesome. Redirecting you back to your profile now. Go get 'em! 🔥";
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <View style={styles.content}>
         
         {/* BOT HEADER */}
         <View style={styles.botInfo}>
-          <Surface style={styles.avatarSurface} elevation={2}>
-            <Avatar.Icon size={60} icon="robot" backgroundColor="#615EFC" />
-            <View style={styles.onlineDot} />
+          <Surface style={[styles.avatarSurface, { backgroundColor: colors.card }]} elevation={2}>
+            <Avatar.Icon size={60} icon="robot" backgroundColor={colors.primary} color="#FFF" />
+            <View style={[styles.onlineDot, { borderColor: colors.card }]} />
           </Surface>
-          <Text style={styles.botName}>Habit Bot</Text>
-          <Text style={styles.botStatus}>Online & Ready</Text>
+          <Text style={[styles.botName, { color: colors.text }]}>Habit Bot</Text>
+          <Text style={[styles.botStatus, { color: colors.subtext }]}>Online & Ready</Text>
         </View>
 
         {/* CHAT BUBBLE */}
         <Animated.View style={[styles.messageWrapper, { opacity: fadeAnim }]}>
-          <View style={styles.chatBubble}>
-            <Text style={styles.messageText}>{renderMessage()}</Text>
-            <View style={styles.bubbleTail} />
+          <View style={[styles.chatBubble, { backgroundColor: colors.card }]}>
+            <Text style={[styles.messageText, { color: colors.text }]}>{renderMessage()}</Text>
+            <View style={[styles.bubbleTail, { backgroundColor: colors.card }]} />
           </View>
         </Animated.View>
 
@@ -63,13 +64,31 @@ export default function Assistant() {
         <View style={styles.optionsWrapper}>
           {(step === 'start' || step === 'loop') && (
             <>
-              <Button mode="contained" onPress={() => setStep('addHabit')} style={styles.mainBtn} contentStyle={styles.btnContent} icon="plus-circle">
+              <Button 
+                mode="contained" 
+                onPress={() => setStep('addHabit')} 
+                style={[styles.mainBtn, { backgroundColor: colors.primary }]} 
+                contentStyle={styles.btnContent} 
+                icon="plus-circle"
+              >
                 How to add a habit
               </Button>
-              <Button mode="contained" onPress={() => setStep('changeUsername')} style={styles.mainBtn} contentStyle={styles.btnContent} icon="cog">
+              <Button 
+                mode="contained" 
+                onPress={() => setStep('changeUsername')} 
+                style={[styles.mainBtn, { backgroundColor: colors.primary }]} 
+                contentStyle={styles.btnContent} 
+                icon="cog"
+              >
                 Change username
               </Button>
-              <Button mode="contained" onPress={() => setStep('aboutApp')} style={styles.mainBtn} contentStyle={styles.btnContent} icon="information">
+              <Button 
+                mode="contained" 
+                onPress={() => setStep('aboutApp')} 
+                style={[styles.mainBtn, { backgroundColor: colors.primary }]} 
+                contentStyle={styles.btnContent} 
+                icon="information"
+              >
                 About the app
               </Button>
             </>
@@ -77,10 +96,20 @@ export default function Assistant() {
 
           {(['addHabit', 'changeUsername', 'aboutApp'].includes(step)) && (
             <>
-              <Button mode="contained" onPress={() => setStep('done')} style={styles.doneBtn} icon="check">
+              <Button 
+                mode="contained" 
+                onPress={() => setStep('done')} 
+                style={styles.doneBtn} 
+                icon="check"
+              >
                 Thanks, I'm good!
               </Button>
-              <Button mode="outlined" onPress={() => setStep('loop')} style={styles.loopBtn} textColor="#615EFC">
+              <Button 
+                mode="outlined" 
+                onPress={() => setStep('loop')} 
+                style={[styles.loopBtn, { borderColor: colors.primary }]} 
+                textColor={colors.primary}
+              >
                 Another question
               </Button>
             </>
@@ -88,7 +117,7 @@ export default function Assistant() {
 
           {step === 'done' && (
             <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Closing chat...</Text>
+              <Text style={[styles.loadingText, { color: colors.subtext }]}>Closing chat...</Text>
             </View>
           )}
         </View>
@@ -99,7 +128,7 @@ export default function Assistant() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1 },
   content: { flex: 1, padding: 24, justifyContent: 'center' },
   
   botInfo: { alignItems: 'center', marginBottom: 40 },
@@ -113,24 +142,22 @@ const styles = StyleSheet.create({
     borderRadius: 7, 
     backgroundColor: '#10B981', 
     borderWidth: 2, 
-    borderColor: '#FFF' 
   },
-  botName: { fontSize: 20, fontWeight: '800', color: '#1E293B', marginTop: 12 },
-  botStatus: { fontSize: 13, color: '#94A3B8', fontWeight: '600' },
+  botName: { fontSize: 20, fontWeight: '800', marginTop: 12 },
+  botStatus: { fontSize: 13, fontWeight: '600' },
 
   messageWrapper: { alignItems: 'center', marginBottom: 40 },
   chatBubble: {
-    backgroundColor: '#FFF',
     padding: 20,
     borderRadius: 24,
     width: '100%',
     position: 'relative',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
       android: { elevation: 3 },
     }),
   },
-  messageText: { fontSize: 17, color: '#334155', lineHeight: 24, textAlign: 'center' },
+  messageText: { fontSize: 17, lineHeight: 24, textAlign: 'center' },
   bubbleTail: {
     position: 'absolute',
     bottom: -10,
@@ -138,17 +165,16 @@ const styles = StyleSheet.create({
     marginLeft: -10,
     width: 20,
     height: 20,
-    backgroundColor: '#FFF',
     transform: [{ rotate: '45deg' }],
     zIndex: -1,
   },
 
   optionsWrapper: { gap: 12 },
-  mainBtn: { borderRadius: 16, backgroundColor: '#615EFC' },
+  mainBtn: { borderRadius: 16 },
   btnContent: { height: 50, flexDirection: 'row-reverse' },
   doneBtn: { borderRadius: 16, backgroundColor: '#10B981' },
-  loopBtn: { borderRadius: 16, borderColor: '#615EFC', borderWidth: 1.5 },
+  loopBtn: { borderRadius: 16, borderWidth: 1.5 },
   
   loadingContainer: { alignItems: 'center', marginTop: 20 },
-  loadingText: { color: '#94A3B8', fontStyle: 'italic' },
+  loadingText: { fontStyle: 'italic' },
 });

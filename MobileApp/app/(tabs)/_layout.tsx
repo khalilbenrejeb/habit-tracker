@@ -1,20 +1,28 @@
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext'; // Ensure this path is correct
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colors, isDarkMode } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        // Use the primary purple for the selected tab
+        tabBarActiveTintColor: colors.primary, 
+        // Use a clear grey for unselected tabs
+        tabBarInactiveTintColor: isDarkMode ? '#94A3B8' : '#64748B',
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.divider,
+          height: 65,
+          paddingBottom: 10,
+        },
       }}>
       <Tabs.Screen
         name="index"
@@ -23,7 +31,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
-      
       <Tabs.Screen
         name="stats"
         options={{
@@ -34,8 +41,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="add"
         options={{
-          title: '', 
-          tabBarIcon: ({ color }) => <Ionicons name="add-circle-outline" size={28} color={color} />,
+          title: 'Add', 
+          tabBarIcon: ({ color }) => <Ionicons name="add-circle" size={32} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -52,7 +59,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="person" size={28} color={color} />,
         }}
       />
-      
     </Tabs>
   );
 }

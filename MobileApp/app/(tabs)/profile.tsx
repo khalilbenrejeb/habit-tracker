@@ -1,40 +1,50 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, SafeAreaView, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import { 
+  StyleSheet, View, SafeAreaView, ScrollView, Platform, TouchableOpacity, StatusBar 
+} from 'react-native';
 import { Avatar, Button, Card, Text, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext'; // Import your hook
+
+// Define types for the helper component
+interface ProfileStatProps {
+  label: string;
+  value: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
-  
-  // Toggle this to 'true' to see the actual profile
+  const { colors, isDarkMode } = useTheme();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Helper for small stat highlights
-  const ProfileStat = ({ label, value, icon }: { label: string, value: string, icon: any }) => (
-    <View style={styles.statBox}>
-      <MaterialCommunityIcons name={icon} size={20} color="#615EFC" />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+  const ProfileStat = ({ label, value, icon }: ProfileStatProps) => (
+    <View style={[styles.statBox, { backgroundColor: colors.card, borderColor: colors.divider }]}>
+      <MaterialCommunityIcons name={icon} size={20} color={colors.primary} />
+      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.subtext }]}>{label}</Text>
     </View>
   );
 
   // --- GUEST VIEW (If not logged in) ---
   if (!isLoggedIn) {
     return (
-      <SafeAreaView style={[styles.container, styles.centered]}>
-        <View style={styles.guestIconCircle}>
-          <MaterialCommunityIcons name="account-lock-outline" size={60} color="#615EFC" />
+      <SafeAreaView style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <View style={[styles.guestIconCircle, { backgroundColor: colors.card }]}>
+          <MaterialCommunityIcons name="account-lock-outline" size={60} color={colors.primary} />
         </View>
-        <Text style={styles.userName}>Join the Grind</Text>
-        <Text style={styles.guestSubtitle}>
+        <Text style={[styles.userName, { color: colors.text }]}>Join the Grind</Text>
+        <Text style={[styles.guestSubtitle, { color: colors.subtext }]}>
           Log in to track your tasks, earn achievements, and access your personal AI assistant.
         </Text>
         
         <Button 
           mode="contained" 
           onPress={() => router.push('/(auth)/login')} 
-          style={styles.loginBtn}
+          style={[styles.loginBtn, { backgroundColor: colors.primary }]}
           contentStyle={{ height: 55 }}
           labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
         >
@@ -42,7 +52,7 @@ export default function ProfileScreen() {
         </Button>
 
         <TouchableOpacity onPress={() => setIsLoggedIn(true)} style={{marginTop: 20}}>
-           <Text style={{color: '#94A3B8'}}>Preview Profile (Dev Only)</Text>
+            <Text style={{color: colors.subtext}}>Preview Profile (Dev Only)</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -50,24 +60,26 @@ export default function ProfileScreen() {
 
   // --- PROFILE VIEW (If logged in) ---
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
         {/* TOP PROFILE HEADER */}
-        <Surface style={styles.profileHeader} elevation={1}>
+        <Surface style={[styles.profileHeader, { backgroundColor: colors.card }]} elevation={1}>
           <Avatar.Text 
             size={80} 
             label="YN" 
-            style={styles.avatar} 
+            style={{ backgroundColor: colors.primary }} 
             labelStyle={styles.avatarLabel} 
           />
-          <Text style={styles.userName}>Your Name</Text>
-          <Text style={styles.userEmail}>developer@example.com</Text>
+          <Text style={[styles.userName, { color: colors.text }]}>Your Name</Text>
+          <Text style={[styles.userEmail, { color: colors.subtext }]}>developer@example.com</Text>
           
           <Button 
             mode="outlined" 
             onPress={() => alert('Edit Profile')} 
-            style={styles.editBtn}
+            style={[styles.editBtn, { borderColor: colors.divider }]}
+            textColor={colors.text}
             contentStyle={{ height: 36 }}
             labelStyle={{ fontSize: 13 }}
           >
@@ -83,21 +95,23 @@ export default function ProfileScreen() {
         </View>
 
         {/* ASSISTANT CARD */}
-        <Card style={styles.assistantCard}>
+        <Card style={[styles.assistantCard, { backgroundColor: isDarkMode ? colors.card : '#1E293B' }]}>
           <View style={styles.assistantContent}>
             <View style={styles.assistantTextWrapper}>
               <Text style={styles.assistantTitle}>AI Assistant</Text>
-              <Text style={styles.assistantSub}>Need help reaching your goals? Ask our AI for tips.</Text>
+              <Text style={[styles.assistantSub, { color: isDarkMode ? colors.subtext : '#94A3B8' }]}>
+                Need help reaching your goals? Ask our AI for tips.
+              </Text>
             </View>
-            <View style={styles.iconCircle}>
-              <MaterialCommunityIcons name="robot-outline" size={30} color="#615EFC" />
+            <View style={[styles.iconCircle, { backgroundColor: isDarkMode ? colors.divider : 'rgba(97, 94, 252, 0.15)' }]}>
+              <MaterialCommunityIcons name="robot-outline" size={30} color={colors.primary} />
             </View>
           </View>
           <Card.Actions style={styles.assistantActions}>
             <Button 
               mode="contained" 
               onPress={() => router.push('/assistant')}
-              style={styles.assistantBtn}
+              style={[styles.assistantBtn, { backgroundColor: colors.primary }]}
               icon="sparkles"
             >
               Open Assistant
@@ -106,17 +120,23 @@ export default function ProfileScreen() {
         </Card>
 
         {/* BADGES SECTION */}
-        <Text style={styles.sectionTitle}>Achievements</Text>
-        <div style={styles.badgeContainer}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Achievements</Text>
+        <View style={styles.badgeContainer}>
           {['Early Bird', 'Consistency King', 'Water Champ'].map((badge, i) => (
-            <View key={i} style={styles.badge}>
+            <View key={i} style={[
+              styles.badge, 
+              { 
+                backgroundColor: isDarkMode ? colors.card : '#ECFDF5', 
+                borderColor: isDarkMode ? colors.divider : '#D1FAE5' 
+              }
+            ]}>
               <MaterialCommunityIcons name="shield-check" size={16} color="#059669" />
-              <Text style={styles.badgeText}>{badge}</Text>
+              <Text style={[styles.badgeText, { color: isDarkMode ? '#10B981' : '#065F46' }]}>{badge}</Text>
             </View>
           ))}
-        </div>
+        </View>
 
-        {/* LOGOUT BUTTON (Optional) */}
+        {/* LOGOUT BUTTON */}
         <Button 
           onPress={() => setIsLoggedIn(false)} 
           textColor="#E11D48" 
@@ -131,98 +151,39 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1 },
   scrollContent: { padding: 20 },
-  
-  // Guest View Styles
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
   guestIconCircle: { 
-    width: 120, 
-    height: 120, 
-    borderRadius: 60, 
-    backgroundColor: '#FFF', 
-    justifyContent: 'center', 
-    alignItems: 'center',
+    width: 120, height: 120, borderRadius: 60, 
+    justifyContent: 'center', alignItems: 'center',
     marginBottom: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10
+    ...Platform.select({ ios: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 }, android: { elevation: 2 } })
   },
-  guestSubtitle: { fontSize: 16, color: '#64748B', textAlign: 'center', marginTop: 10, lineHeight: 24 },
-  loginBtn: { width: '100%', borderRadius: 16, backgroundColor: '#615EFC', marginTop: 30 },
-
-  // Profile Header
+  guestSubtitle: { fontSize: 16, textAlign: 'center', marginTop: 10, lineHeight: 24 },
+  loginBtn: { width: '100%', borderRadius: 16, marginTop: 30 },
   profileHeader: {
-    alignItems: 'center',
-    padding: 24,
-    borderRadius: 32,
-    backgroundColor: '#FFF',
-    marginBottom: 20,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 15 },
-      android: { elevation: 3 },
-    }),
+    alignItems: 'center', padding: 24, borderRadius: 32, marginBottom: 20,
+    ...Platform.select({ ios: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 15 }, android: { elevation: 3 } }),
   },
-  avatar: { backgroundColor: '#615EFC' },
-  avatarLabel: { fontWeight: 'bold' },
-  userName: { fontSize: 24, fontWeight: '800', color: '#1E293B', marginTop: 12 },
-  userEmail: { fontSize: 14, color: '#64748B', marginBottom: 16 },
-  editBtn: { borderRadius: 10, borderColor: '#E2E8F0' },
-
-  // Stats Row
+  avatarLabel: { fontWeight: 'bold', color: '#FFF' },
+  userName: { fontSize: 24, fontWeight: '800', marginTop: 12 },
+  userEmail: { fontSize: 14, marginBottom: 16 },
+  editBtn: { borderRadius: 10, borderWidth: 1 },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  statBox: {
-    backgroundColor: '#FFF',
-    width: '31%',
-    padding: 15,
-    borderRadius: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  statValue: { fontSize: 18, fontWeight: '800', color: '#1E293B', marginTop: 4 },
-  statLabel: { fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: '700' },
-
-  // Assistant Card
-  assistantCard: {
-    borderRadius: 24,
-    backgroundColor: '#1E293B',
-    padding: 8,
-    overflow: 'hidden',
-  },
-  assistantContent: { 
-    flexDirection: 'row', 
-    padding: 20, 
-    alignItems: 'center', 
-    justifyContent: 'space-between' 
-  },
+  statBox: { width: '31%', padding: 15, borderRadius: 20, alignItems: 'center', borderWidth: 1 },
+  statValue: { fontSize: 18, fontWeight: '800', marginTop: 4 },
+  statLabel: { fontSize: 11, textTransform: 'uppercase', fontWeight: '700' },
+  assistantCard: { borderRadius: 24, padding: 8, overflow: 'hidden' },
+  assistantContent: { flexDirection: 'row', padding: 20, alignItems: 'center', justifyContent: 'space-between' },
   assistantTextWrapper: { flex: 1, paddingRight: 10 },
   assistantTitle: { color: '#FFF', fontSize: 20, fontWeight: 'bold' },
-  assistantSub: { color: '#94A3B8', fontSize: 13, marginTop: 4, lineHeight: 18 },
-  iconCircle: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 30, 
-    backgroundColor: 'rgba(97, 94, 252, 0.15)', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
+  assistantSub: { fontSize: 13, marginTop: 4, lineHeight: 18 },
+  iconCircle: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center' },
   assistantActions: { padding: 12, paddingTop: 0 },
-  assistantBtn: { width: '100%', borderRadius: 12, backgroundColor: '#615EFC' },
-
-  // Badges
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#334155', marginTop: 25, marginBottom: 12 },
+  assistantBtn: { width: '100%', borderRadius: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 25, marginBottom: 12 },
   badgeContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  badge: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#ECFDF5', 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#D1FAE5'
-  },
-  badgeText: { marginLeft: 6, color: '#065F46', fontSize: 12, fontWeight: '600' },
+  badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  badgeText: { marginLeft: 6, fontSize: 12, fontWeight: '600' },
 });
