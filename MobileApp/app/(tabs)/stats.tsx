@@ -6,11 +6,14 @@ import {
   ScrollView, 
   SafeAreaView, 
   StatusBar, 
-  Platform 
+  Platform,
+  TouchableOpacity
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext'; // USE THIS instead of supabase.auth
+import { useRouter } from 'expo-router';
 
-// Define types for the StatCard props
 interface StatCardProps {
   label: string;
   value: number | string;
@@ -20,7 +23,10 @@ interface StatCardProps {
 
 export default function StatsScreen() {
   const { colors, isDarkMode } = useTheme();
+  const { user } = useAuth(); // Global auth state
+  const router = useRouter();
 
+  // DUMMY DATA 
   const stats = {
     logins: 34,
     habits: 7,
@@ -30,7 +36,6 @@ export default function StatsScreen() {
     luckynumber: Math.floor(Math.random() * 100) + 1,
   };
 
-  // Helper component for small grid cards
   const StatCard: React.FC<StatCardProps> = ({ label, value, subtext, color = colors.primary }) => (
     <View style={[styles.miniCard, { backgroundColor: colors.card, borderColor: colors.divider }]}>
       <Text style={[styles.miniValue, { color }]}>{value}</Text>
@@ -39,12 +44,33 @@ export default function StatsScreen() {
     </View>
   );
 
+  // --- GUEST VIEW (NOT LOGGED IN) ---
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
+        <View style={[styles.iconBox, { backgroundColor: colors.card, width: 100, height: 100, borderRadius: 30, justifyContent: 'center', alignItems: 'center' }]}>
+          <MaterialCommunityIcons name="chart-arc" size={50} color={colors.primary} />
+        </View>
+        <Text style={[styles.titleText, { color: colors.text, marginTop: 20, textAlign: 'center' }]}>Your Growth Story</Text>
+        <Text style={[styles.subtitleText, { color: colors.subtext, marginVertical: 15, textAlign: 'center' }]}>
+          Sign in to see your daily stats, streaks, and total progress.
+        </Text>
+        <TouchableOpacity 
+          style={[styles.loginButton, { backgroundColor: colors.primary, width: '100%', marginTop: 20 }]}
+          onPress={() => router.push('/login')}
+        >
+          <Text style={styles.loginButtonText}>Sign In to See Stats</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  // --- MAIN STATS VIEW (LOGGED IN) ---
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* HEADER */}
         <View style={styles.header}>
           <Text style={[styles.titleText, { color: colors.text }]}>Your Journey</Text>
           <Text style={[styles.subtitleText, { color: colors.subtext }]}>
@@ -52,7 +78,6 @@ export default function StatsScreen() {
           </Text>
         </View>
 
-        {/* HERO STAT */}
         <View style={[styles.heroCard, { backgroundColor: isDarkMode ? colors.card : '#1E293B' }]}>
           <View>
             <Text style={[styles.heroLabel, { color: isDarkMode ? colors.subtext : '#94A3B8' }]}>
@@ -65,7 +90,6 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        {/* STATS GRID */}
         <View style={styles.grid}>
           <StatCard 
             label="Daily Streak" 
@@ -93,13 +117,9 @@ export default function StatsScreen() {
           />
         </View>
 
-        {/* MOTIVATION FOOTER */}
         <View style={[
           styles.infoBox, 
-          { 
-            backgroundColor: isDarkMode ? colors.card : '#EEF2FF', 
-            borderColor: colors.primary 
-          }
+          { backgroundColor: isDarkMode ? colors.card : '#EEF2FF', borderColor: colors.primary }
         ]}>
           <Text style={[styles.infoTitle, { color: colors.primary }]}>Designer's Note</Text>
           <Text style={[styles.infoBody, { color: isDarkMode ? colors.subtext : '#475569' }]}>
@@ -151,10 +171,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
   },
   miniValue: { fontSize: 24, fontWeight: '800', marginBottom: 4 },
   miniLabel: { fontSize: 14, fontWeight: '700' },
@@ -169,4 +185,13 @@ const styles = StyleSheet.create({
   },
   infoTitle: { fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
   infoBody: { fontSize: 13, lineHeight: 18, fontStyle: 'italic' },
+
+  iconBox: { borderRadius: 18 },
+  loginButton: { 
+    height: 55, 
+    borderRadius: 16, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  loginButtonText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
 });

@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   StyleSheet, View, SafeAreaView, ScrollView, Platform, TouchableOpacity, StatusBar 
 } from 'react-native';
 import { Avatar, Button, Card, Text, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTheme } from '../../context/ThemeContext'; // Import your hook
+import { useTheme } from '../../context/ThemeContext'; 
+import { useAuth } from '../../context/AuthContext'; // USE THIS
 
-// Define types for the helper component
 interface ProfileStatProps {
   label: string;
   value: string;
@@ -17,7 +17,7 @@ interface ProfileStatProps {
 export default function ProfileScreen() {
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, logout } = useAuth(); // Get user and logout function
 
   // Helper for small stat highlights
   const ProfileStat = ({ label, value, icon }: ProfileStatProps) => (
@@ -28,8 +28,8 @@ export default function ProfileScreen() {
     </View>
   );
 
-  // --- GUEST VIEW (If not logged in) ---
-  if (!isLoggedIn) {
+  // --- GUEST VIEW ---
+  if (!user) {
     return (
       <SafeAreaView style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -43,41 +43,42 @@ export default function ProfileScreen() {
         
         <Button 
           mode="contained" 
-          onPress={() => router.push('/(auth)/login')} 
+          onPress={() => router.push('/login')} 
           style={[styles.loginBtn, { backgroundColor: colors.primary }]}
           contentStyle={{ height: 55 }}
           labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
         >
           Login / Sign Up
         </Button>
-
-        <TouchableOpacity onPress={() => setIsLoggedIn(true)} style={{marginTop: 20}}>
-            <Text style={{color: colors.subtext}}>Preview Profile (Dev Only)</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  // --- PROFILE VIEW (If logged in) ---
+  // --- PROFILE VIEW ---
+  // Get first letter of email or name for Avatar
+  const userInitial = user.email ? user.email.charAt(0).toUpperCase() : 'U';
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* TOP PROFILE HEADER */}
         <Surface style={[styles.profileHeader, { backgroundColor: colors.card }]} elevation={1}>
           <Avatar.Text 
             size={80} 
-            label="YN" 
+            label={userInitial} 
             style={{ backgroundColor: colors.primary }} 
             labelStyle={styles.avatarLabel} 
           />
-          <Text style={[styles.userName, { color: colors.text }]}>Your Name</Text>
-          <Text style={[styles.userEmail, { color: colors.subtext }]}>developer@example.com</Text>
+          <Text style={[styles.userName, { color: colors.text }]}>
+            {user.user_metadata?.full_name || 'User'}
+          </Text>
+          <Text style={[styles.userEmail, { color: colors.subtext }]}>{user.email}</Text>
           
           <Button 
             mode="outlined" 
-            onPress={() => alert('Edit Profile')} 
+            onPress={() => console.log('Edit Profile')} 
             style={[styles.editBtn, { borderColor: colors.divider }]}
             textColor={colors.text}
             contentStyle={{ height: 36 }}
@@ -138,9 +139,10 @@ export default function ProfileScreen() {
 
         {/* LOGOUT BUTTON */}
         <Button 
-          onPress={() => setIsLoggedIn(false)} 
+          onPress={logout} 
           textColor="#E11D48" 
-          style={{ marginTop: 30 }}
+          style={{ marginTop: 40, marginBottom: 20 }}
+          icon="logout"
         >
           Logout
         </Button>

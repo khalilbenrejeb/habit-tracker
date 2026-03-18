@@ -6,10 +6,10 @@ import {
 import { TextInput, Button, SegmentedButtons, Text, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTheme } from '../../context/ThemeContext'; // Import your hook
+import { useTheme } from '../../context/ThemeContext'; 
+import { useAuth } from '../../context/AuthContext'; // USE THIS
 import { supabase } from '../../supabase'; 
 
-// Define Types for TSX
 interface PresetTask {
   name: string;
   type: 'active' | 'passive';
@@ -26,7 +26,9 @@ const PRESET_TASKS: PresetTask[] = [
 
 export default function AddScreen() {
   const router = useRouter();
-  const { colors, isDarkMode } = useTheme(); // Use global theme
+  const { colors } = useTheme();
+  const { user } = useAuth(); // Get global user
+  
   const [loading, setLoading] = useState(false);
   const [taskName, setTaskName] = useState('');
   const [type, setType] = useState<'active' | 'passive'>('active');
@@ -43,10 +45,8 @@ export default function AddScreen() {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         Alert.alert("Error", "You must be logged in to add habits.");
-        setLoading(false);
         return;
       }
 
@@ -58,7 +58,7 @@ export default function AddScreen() {
             type: type,
             amount: type === 'active' ? parseInt(amount) || 1 : null,
             completed: false,
-            user_id: user.id,
+            user_id: user.id, // Using ID from our AuthContext
           },
         ]);
 
@@ -68,19 +68,40 @@ export default function AddScreen() {
         router.replace('/(tabs)'); 
       }
     } catch (err) {
-      console.error(err);
       Alert.alert("Error", "Something went wrong saving your habit.");
     } finally {
       setLoading(false);
     }
   };
 
+  // --- GUEST VIEW ---
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
+        <Surface style={[styles.iconBox, { backgroundColor: colors.card, width: 100, height: 100, borderRadius: 30, justifyContent: 'center', alignItems: 'center' }]} elevation={2}>
+          <MaterialCommunityIcons name="plus-circle-outline" size={50} color={colors.primary} />
+        </Surface>
+        <Text style={[styles.headerTitle, { color: colors.text, marginTop: 20, textAlign: 'center' }]}>Start a New Habit</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.subtext, marginVertical: 15, textAlign: 'center' }]}>
+          Log in to create your custom daily grind and track your consistency.
+        </Text>
+        <Button 
+          mode="contained" 
+          onPress={() => router.push('/login')}
+          style={[styles.saveButton, { backgroundColor: colors.primary, width: '100%', marginTop: 20 }]}
+          contentStyle={styles.buttonInner}
+          labelStyle={styles.buttonLabel}
+        >
+          Sign In to Create Habits
+        </Button>
+      </SafeAreaView>
+    );
+  }
+
+  // --- FORM VIEW ---
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           
           <View style={styles.header}>
@@ -90,7 +111,6 @@ export default function AddScreen() {
             </Text>
           </View>
 
-          {/* QUICK SELECT SECTION */}
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: colors.subtext }]}>Quick Select</Text>
             <FlatList
@@ -125,10 +145,7 @@ export default function AddScreen() {
             />
           </View>
 
-          {/* FORM SECTION */}
           <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.divider }]}>
-            <Text style={[styles.sectionLabel, { color: colors.subtext }]}>Habit Details</Text>
-            
             <TextInput
               label="Habit Name"
               value={taskName}
@@ -136,7 +153,6 @@ export default function AddScreen() {
               mode="outlined"
               activeOutlineColor={colors.primary}
               textColor={colors.text}
-              placeholderTextColor={colors.subtext}
               style={[styles.input, { backgroundColor: colors.card }]}
               theme={{ colors: { outline: colors.divider, onSurfaceVariant: colors.subtext } }}
               editable={!loading}
@@ -153,29 +169,27 @@ export default function AddScreen() {
               style={styles.segmented}
               theme={{ 
                 colors: { 
-                  secondaryContainer: colors.primary, // Color when selected
-                  onSecondaryContainer: '#FFF',      // Icon/Text color when selected
-                  outline: colors.divider            // Border color
+                  secondaryContainer: colors.primary, 
+                  onSecondaryContainer: '#FFF', 
+                  outline: colors.divider 
                 } 
               }}
             />
 
             {type === 'active' && (
-              <View style={styles.amountContainer}>
-                <TextInput
-                  label="Daily Goal"
-                  value={amount}
-                  onChangeText={setAmount}
-                  keyboardType="numeric"
-                  mode="outlined"
-                  activeOutlineColor={colors.primary}
-                  textColor={colors.text}
-                  style={[styles.input, { backgroundColor: colors.card }]}
-                  theme={{ colors: { outline: colors.divider, onSurfaceVariant: colors.subtext } }}
-                  left={<TextInput.Icon icon="counter" iconColor={colors.subtext} />}
-                  editable={!loading}
-                />
-              </View>
+              <TextInput
+                label="Daily Goal"
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="numeric"
+                mode="outlined"
+                activeOutlineColor={colors.primary}
+                textColor={colors.text}
+                style={[styles.input, { backgroundColor: colors.card }]}
+                theme={{ colors: { outline: colors.divider, onSurfaceVariant: colors.subtext } }}
+                left={<TextInput.Icon icon="counter" iconColor={colors.subtext} />}
+                editable={!loading}
+              />
             )}
           </View>
 
@@ -188,7 +202,7 @@ export default function AddScreen() {
             contentStyle={styles.buttonInner}
             labelStyle={styles.buttonLabel}
           >
-            {loading ? "Saving..." : "Create Habit"}
+            Create Habit
           </Button>
 
           <TouchableOpacity onPress={() => router.back()} style={styles.cancelBtn}>
@@ -216,10 +230,10 @@ const styles = StyleSheet.create({
   input: { marginBottom: 16 },
   subLabel: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
   segmented: { marginBottom: 20 },
-  amountContainer: { marginTop: 10 },
   saveButton: { borderRadius: 16 },
   buttonInner: { height: 56 },
   buttonLabel: { fontSize: 18, fontWeight: 'bold', color: '#FFF' },
   cancelBtn: { marginTop: 20, alignItems: 'center' },
   cancelText: { fontWeight: '600' },
+  iconBox: { marginBottom: 10 }
 });

@@ -2,12 +2,14 @@ import { DarkTheme, DefaultTheme, ThemeProvider as NavProvider } from '@react-na
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { AuthProvider } from '../context/AuthContext';
 
 function RootLayoutContent() {
   const { isDarkMode, colors } = useTheme();
 
   return (
     <NavProvider value={isDarkMode ? DarkTheme : DefaultTheme}>
+      <AuthProvider>
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.card },
@@ -20,6 +22,7 @@ function RootLayoutContent() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      </AuthProvider>
     </NavProvider>
   );
 }
