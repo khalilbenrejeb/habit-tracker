@@ -7,7 +7,7 @@ import { TextInput, Button, SegmentedButtons, Text, Surface } from 'react-native
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext'; 
-import { useAuth } from '../../context/AuthContext'; // USE THIS
+import { useAuth } from '../../context/AuthContext'; 
 import { supabase } from '../../supabase'; 
 
 interface PresetTask {
@@ -27,7 +27,7 @@ const PRESET_TASKS: PresetTask[] = [
 export default function AddScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { user } = useAuth(); // Get global user
+  const { user } = useAuth(); 
   
   const [loading, setLoading] = useState(false);
   const [taskName, setTaskName] = useState('');
@@ -41,40 +41,49 @@ export default function AddScreen() {
   };
 
   const handleSave = async () => {
-    if (!taskName.trim()) return;
+    if (!taskName.trim() || !user) return;
     setLoading(true);
 
     try {
-      if (!user) {
-        Alert.alert("Error", "You must be logged in to add habits.");
-        return;
-      }
+      // 1. Get current habits array from 'userdata'
+      const { data: profile, error: fetchError } = await supabase
+        .from('userdata')
+        .select('habits')
+        .eq('id', user.id)
+        .maybeSingle();
 
-      const { error } = await supabase
-        .from('habits')
-        .insert([
-          {
-            name: taskName,
-            type: type,
-            amount: type === 'active' ? parseInt(amount) || 1 : null,
-            completed: false,
-            user_id: user.id, // Using ID from our AuthContext
-          },
-        ]);
+      if (fetchError) throw fetchError;
 
-      if (error) {
-        Alert.alert("Save Failed", error.message);
-      } else {
-        router.replace('/(tabs)'); 
-      }
-    } catch (err) {
-      Alert.alert("Error", "Something went wrong saving your habit.");
+      const existingHabits = profile?.habits || [];
+      
+      // 2. Create the new habit object
+      const newHabit = {
+        id: Date.now().toString(), // unique ID for later updates
+        name: taskName,
+        type: type,
+        amount: type === 'active' ? parseInt(amount) || 1 : null,
+        completed: false,
+        created_at: new Date().toISOString()
+      };
+
+      // 3. Update the table (Upsert will create the row if it doesn't exist)
+      const { error: saveError } = await supabase
+        .from('userdata')
+        .upsert({
+          id: user.id,
+          habits: [...existingHabits, newHabit]
+        }, { onConflict: 'id' });
+
+      if (saveError) throw saveError;
+
+      router.replace('/(tabs)'); 
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to save habit.");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- GUEST VIEW ---
   if (!user) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
@@ -82,33 +91,19 @@ export default function AddScreen() {
           <MaterialCommunityIcons name="plus-circle-outline" size={50} color={colors.primary} />
         </Surface>
         <Text style={[styles.headerTitle, { color: colors.text, marginTop: 20, textAlign: 'center' }]}>Start a New Habit</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.subtext, marginVertical: 15, textAlign: 'center' }]}>
-          Log in to create your custom daily grind and track your consistency.
-        </Text>
-        <Button 
-          mode="contained" 
-          onPress={() => router.push('/login')}
-          style={[styles.saveButton, { backgroundColor: colors.primary, width: '100%', marginTop: 20 }]}
-          contentStyle={styles.buttonInner}
-          labelStyle={styles.buttonLabel}
-        >
+        <Button mode="contained" onPress={() => router.push('/login')} style={[styles.saveButton, { backgroundColor: colors.primary, width: '100%', marginTop: 20 }]}>
           Sign In to Create Habits
         </Button>
       </SafeAreaView>
     );
   }
 
-  // --- FORM VIEW ---
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          
           <View style={styles.header}>
             <Text style={[styles.headerTitle, { color: colors.text }]}>New Habit</Text>
-            <Text style={[styles.headerSubtitle, { color: colors.subtext }]}>
-              Choose a preset or create your own
-            </Text>
           </View>
 
           <View style={styles.section}>
@@ -123,21 +118,9 @@ export default function AddScreen() {
                 const isSelected = taskName === item.name;
                 return (
                   <TouchableOpacity onPress={() => selectPreset(item)}>
-                    <Surface style={[
-                      styles.presetCard, 
-                      { backgroundColor: colors.card },
-                      isSelected && { backgroundColor: colors.primary }
-                    ]} elevation={isSelected ? 4 : 1}>
-                      <MaterialCommunityIcons 
-                        name={item.icon} 
-                        size={24} 
-                        color={isSelected ? '#FFF' : colors.primary} 
-                      />
-                      <Text style={[
-                        styles.presetText, 
-                        { color: colors.text },
-                        isSelected && { color: '#FFF' }
-                      ]}>{item.name}</Text>
+                    <Surface style={[styles.presetCard, { backgroundColor: colors.card }, isSelected && { backgroundColor: colors.primary }]} elevation={isSelected ? 4 : 1}>
+                      <MaterialCommunityIcons name={item.icon} size={24} color={isSelected ? '#FFF' : colors.primary} />
+                      <Text style={[styles.presetText, { color: colors.text }, isSelected && { color: '#FFF' }]}>{item.name}</Text>
                     </Surface>
                   </TouchableOpacity>
                 );
@@ -167,13 +150,7 @@ export default function AddScreen() {
                 { value: 'passive', label: 'Avoidance', icon: 'cancel', checkedColor: '#FFF', uncheckedColor: colors.subtext },
               ]}
               style={styles.segmented}
-              theme={{ 
-                colors: { 
-                  secondaryContainer: colors.primary, 
-                  onSecondaryContainer: '#FFF', 
-                  outline: colors.divider 
-                } 
-              }}
+              theme={{ colors: { secondaryContainer: colors.primary, onSecondaryContainer: '#FFF', outline: colors.divider } }}
             />
 
             {type === 'active' && (
@@ -208,7 +185,6 @@ export default function AddScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.cancelBtn}>
             <Text style={[styles.cancelText, { color: colors.subtext }]}>Cancel</Text>
           </TouchableOpacity>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -220,7 +196,6 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 24 },
   header: { marginBottom: 30 },
   headerTitle: { fontSize: 32, fontWeight: '800' },
-  headerSubtitle: { fontSize: 16, marginTop: 4 },
   section: { marginBottom: 30 },
   sectionLabel: { fontSize: 14, fontWeight: '700', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 1 },
   presetList: { paddingRight: 20 },

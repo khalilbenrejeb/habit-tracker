@@ -36,9 +36,26 @@ export default function LoginScreen() {
       if (error || !data) {
         Alert.alert("Login Failed", "Invalid email or password.");
       } else {
-        setUser(data); // THIS UNLOCKS THE APP
-        router.replace('/(tabs)'); 
-      }
+  // 1. Get the current count from userdata (where the stats actually live)
+  const { data: stats } = await supabase
+    .from('userdata')
+    .select('number_of_logins')
+    .eq('id', data.id)
+    .single();
+
+  const currentLogins = stats?.number_of_logins || 0;
+
+  // 2. Use upsert so it creates the row if this is their first login
+  await supabase
+    .from('userdata')
+    .upsert({ 
+      id: data.id, 
+      number_of_logins: currentLogins + 1 
+    }, { onConflict: 'id' });
+
+  setUser(data); 
+  router.replace('/(tabs)'); 
+}
     } catch (err) {
       setLoading(false);
       Alert.alert("Error", "Database connection failed.");
