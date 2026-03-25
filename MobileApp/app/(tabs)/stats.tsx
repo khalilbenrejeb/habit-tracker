@@ -1,50 +1,70 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  ScrollView, 
-  SafeAreaView, 
-  StatusBar, 
-  Platform,
-  TouchableOpacity
+  StyleSheet, Text, View, ScrollView, SafeAreaView, 
+  StatusBar, Platform, TouchableOpacity, ActivityIndicator 
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext'; // USE THIS instead of supabase.auth
+import { useAuth } from '../../context/AuthContext'; 
 import { useRouter } from 'expo-router';
-
-interface StatCardProps {
-  label: string;
-  value: number | string;
-  subtext?: string;
-  color?: string;
-}
+import { supabase } from '../../supabase';
 
 export default function StatsScreen() {
   const { colors, isDarkMode } = useTheme();
-  const { user } = useAuth(); // Global auth state
+  const { user } = useAuth(); 
   const router = useRouter();
 
-  // DUMMY DATA 
-  const stats = {
-    logins: 34,
-    habits: 7,
-    startDate: 'Feb 01, 2026',
-    totalTasksCompleted: 120,
-    dailyTasksCompleted: 3,
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    logins: 0,
+    habitsCount: 0,
+    startDate: '...',
+    completedToday: 0,
     luckynumber: Math.floor(Math.random() * 100) + 1,
+  });
+
+  useEffect(() => {
+    if (user) fetchRealStats();
+  }, [user]);
+
+  const fetchRealStats = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('userdata')
+        .select('*')
+        .eq('id', user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        // Calculate stats from the habits array
+        const habitsArray = data.habits || [];
+        const completed = habitsArray.filter((h: any) => h.completed).length;
+
+        // Format the date nicely
+        const date = new Date(data.created_at).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+
+        setStats(prev => ({
+          ...prev,
+          logins: data.number_of_logins || 0,
+          habitsCount: habitsArray.length,
+          startDate: date,
+          completedToday: completed,
+        }));
+      }
+    } catch (err) {
+      console.log("Stats Error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const StatCard: React.FC<StatCardProps> = ({ label, value, subtext, color = colors.primary }) => (
-    <View style={[styles.miniCard, { backgroundColor: colors.card, borderColor: colors.divider }]}>
-      <Text style={[styles.miniValue, { color }]}>{value}</Text>
-      <Text style={[styles.miniLabel, { color: colors.text }]}>{label}</Text>
-      {subtext && <Text style={[styles.subtext, { color: colors.subtext }]}>{subtext}</Text>}
-    </View>
-  );
-
-  // --- GUEST VIEW (NOT LOGGED IN) ---
   if (!user) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
@@ -65,7 +85,6 @@ export default function StatsScreen() {
     );
   }
 
-  // --- MAIN STATS VIEW (LOGGED IN) ---
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -78,44 +97,49 @@ export default function StatsScreen() {
           </Text>
         </View>
 
-        <View style={[styles.heroCard, { backgroundColor: isDarkMode ? colors.card : '#1E293B' }]}>
-          <View>
-            <Text style={[styles.heroLabel, { color: isDarkMode ? colors.subtext : '#94A3B8' }]}>
-              Total Tasks Smashed
-            </Text>
-            <Text style={styles.heroValue}>{stats.totalTasksCompleted}</Text>
-          </View>
-          <View style={[styles.heroBadge, { backgroundColor: colors.primary }]}>
-            <Text style={styles.badgeText}>MVP</Text>
-          </View>
-        </View>
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />
+        ) : (
+          <>
+            <View style={[styles.heroCard, { backgroundColor: isDarkMode ? colors.card : '#1E293B' }]}>
+              <View>
+                <Text style={[styles.heroLabel, { color: isDarkMode ? colors.subtext : '#94A3B8' }]}>
+                  Tasks Smashed Today
+                </Text>
+                <Text style={styles.heroValue}>{stats.completedToday}</Text>
+              </View>
+              <View style={[styles.heroBadge, { backgroundColor: colors.primary }]}>
+                <Text style={styles.badgeText}>{stats.completedToday > 0 ? 'ON FIRE' : 'STARTING'}</Text>
+              </View>
+            </View>
 
-        <View style={styles.grid}>
-          <StatCard 
-            label="Daily Streak" 
-            value={stats.dailyTasksCompleted} 
-            subtext="Tasks today" 
-            color="#0EA5E9" 
-          />
-          <StatCard 
-            label="Active Habits" 
-            value={stats.habits} 
-            subtext="In progress" 
-            color="#8B5CF6" 
-          />
-          <StatCard 
-            label="Total Logins" 
-            value={stats.logins} 
-            subtext="Loyalty level" 
-            color="#F59E0B" 
-          />
-          <StatCard 
-            label="Lucky Number" 
-            value={stats.luckynumber} 
-            subtext="Your daily vibe" 
-            color="#10B981" 
-          />
-        </View>
+            <View style={styles.grid}>
+              <View style={[styles.miniCard, { backgroundColor: colors.card, borderColor: colors.divider }]}>
+                <Text style={[styles.miniValue, { color: "#0EA5E9" }]}>{stats.completedToday}</Text>
+                <Text style={[styles.miniLabel, { color: colors.text }]}>Daily Streak</Text>
+                <Text style={[styles.subtext, { color: colors.subtext }]}>Tasks done</Text>
+              </View>
+
+              <View style={[styles.miniCard, { backgroundColor: colors.card, borderColor: colors.divider }]}>
+                <Text style={[styles.miniValue, { color: "#8B5CF6" }]}>{stats.habitsCount}</Text>
+                <Text style={[styles.miniLabel, { color: colors.text }]}>Active Habits</Text>
+                <Text style={[styles.subtext, { color: colors.subtext }]}>In progress</Text>
+              </View>
+
+              <View style={[styles.miniCard, { backgroundColor: colors.card, borderColor: colors.divider }]}>
+                <Text style={[styles.miniValue, { color: "#F59E0B" }]}>{stats.logins}</Text>
+                <Text style={[styles.miniLabel, { color: colors.text }]}>Total Logins</Text>
+                <Text style={[styles.subtext, { color: colors.subtext }]}>Loyalty level</Text>
+              </View>
+
+              <View style={[styles.miniCard, { backgroundColor: colors.card, borderColor: colors.divider }]}>
+                <Text style={[styles.miniValue, { color: "#10B981" }]}>{stats.luckynumber}</Text>
+                <Text style={[styles.miniLabel, { color: colors.text }]}>Lucky Number</Text>
+                <Text style={[styles.subtext, { color: colors.subtext }]}>Your daily vibe</Text>
+              </View>
+            </View>
+          </>
+        )}
 
         <View style={[
           styles.infoBox, 
