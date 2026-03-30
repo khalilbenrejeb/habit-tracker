@@ -23,7 +23,6 @@ export default function Assistant() {
   ]);
   
   const scrollViewRef = useRef<ScrollView>(null);
-  
   // ⚠️ GENERATE A NEW KEY AND PUT IT HERE 
   const API_KEY = process.env.EXPO_PUBLIC_GEMINI_KEY;
 
