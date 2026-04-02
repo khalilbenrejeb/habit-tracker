@@ -80,7 +80,9 @@ export default function HomePage() {
       
       <div className="pl-64">
         <main className="p-8 max-w-7xl mx-auto">
-          
+          <div className="mb-4 p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200">
+  Welcome back, {user?.email || 'Admin'}! 🚀
+</div>
           <div className="mb-10 flex items-center justify-between border-b border-slate-200 pb-6 dark:border-gray-800">
             <div>
               <h1 className="text-2xl font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Admin Dashboard</h1>
