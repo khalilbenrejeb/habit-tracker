@@ -55,7 +55,9 @@ export function Sidebar() {
             )
           })}
         </nav>
-
+<div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+  Server Status: <span className="font-bold text-green-600">Online</span>
+</div>
         <div className="mt-auto border-t border-gray-200 p-4 dark:border-gray-700">
           <ThemeToggle />
         </div>       
