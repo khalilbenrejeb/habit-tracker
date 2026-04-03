@@ -96,7 +96,7 @@ export default function ProfileScreen() {
         {/* HEADER */}
         <Surface style={[styles.profileHeader, { backgroundColor: colors.card }]} elevation={1}>
           <Avatar.Text size={80} label={userInitial} style={{ backgroundColor: colors.primary }} />
-          <Text style={[styles.userName, { color: colors.text }]}>Khalil</Text>
+          <Text style={[styles.userName, { color: colors.text }]}>{user.first_name}</Text>
           <Text style={[styles.userEmail, { color: colors.subtext }]}>{user.email}</Text>
         </Surface>
 

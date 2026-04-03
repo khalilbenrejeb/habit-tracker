@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react'; // Added useCallback
 import { 
   StyleSheet, Text, View, ScrollView, SafeAreaView, 
   StatusBar, Platform, TouchableOpacity, ActivityIndicator 
@@ -6,7 +6,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext'; 
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router'; // Added useFocusEffect
 import { supabase } from '../../supabase';
 
 export default function StatsScreen() {
@@ -23,9 +23,12 @@ export default function StatsScreen() {
     luckynumber: Math.floor(Math.random() * 100) + 1,
   });
 
-  useEffect(() => {
-    if (user) fetchRealStats();
-  }, [user]);
+  // 🔄 THE REFRESH LOGIC: Fires every time the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (user) fetchRealStats();
+    }, [user])
+  );
 
   const fetchRealStats = async () => {
     try {
@@ -39,11 +42,9 @@ export default function StatsScreen() {
       if (error) throw error;
 
       if (data) {
-        // Calculate stats from the habits array
         const habitsArray = data.habits || [];
         const completed = habitsArray.filter((h: any) => h.completed).length;
 
-        // Format the date nicely
         const date = new Date(data.created_at).toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
