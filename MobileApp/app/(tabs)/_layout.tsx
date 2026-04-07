@@ -46,10 +46,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="assistant"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <Ionicons name="settings" size={28} color={color} />,
+          title: 'assistant',
+          tabBarIcon: ({ color }) => <Ionicons name="chatbubble" size={28} color={color} />,
         }}
       />
       <Tabs.Screen

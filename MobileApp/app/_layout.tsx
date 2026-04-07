@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
+import { PaperProvider } from 'react-native-paper';
 
 function RootLayoutContent() {
   const { isDarkMode, colors } = useTheme();
@@ -10,6 +11,7 @@ function RootLayoutContent() {
   return (
     <NavProvider value={isDarkMode ? DarkTheme : DefaultTheme}>
       <AuthProvider>
+        <PaperProvider>
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.card },
@@ -22,6 +24,7 @@ function RootLayoutContent() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      </PaperProvider>
       </AuthProvider>
     </NavProvider>
   );

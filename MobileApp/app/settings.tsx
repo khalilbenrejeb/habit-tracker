@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { Switch } from 'react-native-paper';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function SettingsScreen() {
   const { isDarkMode, toggleTheme, colors } = useTheme();
