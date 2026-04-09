@@ -6,7 +6,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '../supabase';
 import { Surface } from 'react-native-paper';
 
@@ -17,6 +17,10 @@ export default function PassiveHabitScreen() {
   const { user } = useAuth();
   const [habits, setHabits] = useState<any[]>([]);
   const [now, setNow] = useState(new Date());
+
+  // Get the ID from the previous screen
+  const { id } = useLocalSearchParams();
+
 
   // 1. The Clock: Keeps the seconds ticking live
   useEffect(() => {
@@ -38,9 +42,11 @@ export default function PassiveHabitScreen() {
       .eq('id', user?.id)
       .maybeSingle();
     
-    // Filter to only show habits where type is passive
     const all = data?.habits || [];
-    setHabits(all.filter((h: any) => h.type?.toLowerCase() === 'passive'));
+
+    // FILTER: Only show the one that matches the ID from the params
+    const selectedHabit = all.filter((h: any) => h.id === id);
+    setHabits(selectedHabit);
   };
 
   // 3. Stats & Rank Logic

@@ -4,11 +4,17 @@ import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
 import { PaperProvider } from 'react-native-paper';
-
+import { ImageBackground, StyleSheet } from 'react-native';
+import backgroundImage from '../assets/images/imagebackground.jpg';
 function RootLayoutContent() {
   const { isDarkMode, colors } = useTheme();
 
   return (
+    <ImageBackground 
+      source={backgroundImage} // Put your file path here
+      style={styles.background}
+      resizeMode="cover"
+    >
     <NavProvider value={isDarkMode ? DarkTheme : DefaultTheme}>
       <AuthProvider>
         <PaperProvider>
@@ -27,6 +33,7 @@ function RootLayoutContent() {
       </PaperProvider>
       </AuthProvider>
     </NavProvider>
+    </ImageBackground>
   );
 }
 
@@ -37,3 +44,11 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+});

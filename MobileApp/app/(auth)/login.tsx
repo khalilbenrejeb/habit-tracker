@@ -7,20 +7,47 @@ import {
 } from 'react-native';
 import { supabase } from '../../supabase';
 import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext'; // Added this
+import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
-  const { setUser } = useAuth(); // Use the setter
+  const { setUser } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const finalizeLogin = async (userData: any) => {
+    try {
+      // 1. Get the current count from userdata
+      const { data: stats } = await supabase
+        .from('userdata')
+        .select('number_of_logins')
+        .eq('id', userData.id)
+        .single();
+
+      const currentLogins = stats?.number_of_logins || 0;
+
+      // 2. Increment login count
+      await supabase
+        .from('userdata')
+        .upsert({ 
+          id: userData.id, 
+          number_of_logins: currentLogins + 1 
+        }, { onConflict: 'id' });
+
+      setUser(userData); 
+      router.replace('/(tabs)'); 
+    } catch (err) {
+      console.log("Stats update failed, but logging in anyway.");
+      setUser(userData); 
+      router.replace('/(tabs)');
+    }
+  };
+
   const handleLogin = async () => {
     if (!email || !password) return Alert.alert("Error", "Fill in all fields.");
-
     setLoading(true);
 
     try {
@@ -31,31 +58,12 @@ export default function LoginScreen() {
         .eq('password', password)
         .single();
 
-      setLoading(false);
-
       if (error || !data) {
+        setLoading(false);
         Alert.alert("Login Failed", "Invalid email or password.");
       } else {
-  // 1. Get the current count from userdata (where the stats actually live)
-  const { data: stats } = await supabase
-    .from('userdata')
-    .select('number_of_logins')
-    .eq('id', data.id)
-    .single();
-
-  const currentLogins = stats?.number_of_logins || 0;
-
-  // 2. Use upsert so it creates the row if this is their first login
-  await supabase
-    .from('userdata')
-    .upsert({ 
-      id: data.id, 
-      number_of_logins: currentLogins + 1 
-    }, { onConflict: 'id' });
-
-  setUser(data); 
-  router.replace('/(tabs)'); 
-}
+        await finalizeLogin(data);
+      }
     } catch (err) {
       setLoading(false);
       Alert.alert("Error", "Database connection failed.");
@@ -73,7 +81,7 @@ export default function LoginScreen() {
                 <Text style={styles.logoText}>DG</Text>
               </View>
               <Text style={[styles.titleText, { color: colors.text }]}>Welcome Back</Text>
-              <Text style={[styles.subtitleText, { color: colors.subtext }]}>Log in to continue your Daily Grind.</Text>
+              <Text style={[styles.subtitleText, { color: colors.subtext }]}>Log in to your Daily Grind.</Text>
             </View>
 
             <View style={styles.form}>
@@ -99,6 +107,10 @@ export default function LoginScreen() {
                 disabled={loading}
               >
                 {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.loginButtonText}>Sign In</Text>}
+              </TouchableOpacity>
+              
+              <TouchableOpacity onPress={() => router.push('/signup')} style={{ marginTop: 20, alignItems: 'center' }}>
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Don't have an account? Sign Up</Text>
               </TouchableOpacity>
             </View>
           </View>
