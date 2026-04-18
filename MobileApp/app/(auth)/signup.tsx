@@ -16,6 +16,9 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useEffect } from 'react';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { useAuth } from '../../context/AuthContext'; // To set the user globally
 import { supabase } from '../../supabase';
 import { useTheme } from '../../context/ThemeContext'; // Import your hook
 
@@ -29,6 +32,72 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+const { setUser } = useAuth();
+
+  // Configure Google on Load
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '217079460112-vkgl0504jhv63oktlqoatvfkaguth35u.apps.googleusercontent.com',
+      iosClientId: '217079460112-99geqe8e42o0a0t10umqcnf38ajrro1o.apps.googleusercontent.com',
+      offlineAccess: true,
+    });
+  }, []);
+
+  // This handles the database stats after any type of login/signup
+  const finalizeLogin = async (userData: any) => {
+    try {
+      const { data: stats } = await supabase
+        .from('userdata')
+        .select('number_of_logins')
+        .eq('id', userData.id)
+        .single();
+
+      const currentLogins = stats?.number_of_logins || 0;
+
+      await supabase
+        .from('userdata')
+        .upsert({ 
+          id: userData.id, 
+          number_of_logins: currentLogins + 1 
+        }, { onConflict: 'id' });
+
+      setUser(userData); 
+      router.replace('/(tabs)'); 
+    } catch (err) {
+      setUser(userData); 
+      router.replace('/(tabs)');
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
+
+      if (!idToken) throw new Error('No ID token found');
+
+      // Sign into Supabase with the Google Token
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+
+      if (error) throw error;
+      
+      // If successful, update stats and go to the home screen
+      if (data.user) await finalizeLogin(data.user);
+
+    } catch (error: any) {
+      if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert("Google Error", error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignup = async () => {
     // 1. Validation
@@ -97,6 +166,23 @@ export default function SignupScreen() {
                   Create your account and start tracking progress.
                 </Text>
               </View>
+              {/* Google Signup Button */}
+<TouchableOpacity 
+  style={[
+    styles.loginButton, // Use your existing button style
+    { backgroundColor: isDarkMode ? '#FFF' : '#1A1A1A', marginTop: 12, flexDirection: 'row', gap: 10 }
+  ]} 
+  onPress={handleGoogleSignup}
+  disabled={loading}
+>
+  {loading ? (
+    <ActivityIndicator color={isDarkMode ? "#000" : "#FFF"} />
+  ) : (
+    <Text style={[styles.loginButtonText, { color: isDarkMode ? '#000' : '#FFF' }]}>
+       Continue with Google
+    </Text>
+  )}
+</TouchableOpacity> 
 
               <View style={styles.form}>
                 {[
@@ -208,4 +294,22 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 30, marginBottom: 20 },
   footerText: { fontSize: 15 },
   loginLink: { fontWeight: '700', fontSize: 15 },
+  loginButton: {
+    height: 55,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    // This adds a slight shadow for Android/iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
 });

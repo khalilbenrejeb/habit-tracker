@@ -302,7 +302,7 @@ async function playLevelUpSound() {
                         <Text style={{ color: colors.subtext, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>
                           {isPassive 
                             ? `🔥 ${getSimpleStreak(item.created_at)}` 
-                            : (isDone ? "GOAL REACHED" : `+10 XP • ${item.type}`)}
+                            : (isDone ? "GOAL REACHED" : `+10 XP • ${item.type} amount: ${item.amount}`)}
                         </Text>
                       </View>
                     </View>

@@ -18,6 +18,45 @@ export default function PassiveHabitScreen() {
   const [habits, setHabits] = useState<any[]>([]);
   const [now, setNow] = useState(new Date());
 
+const checkAndAwardXP = async (selectedHabit: any) => {
+    if (!selectedHabit || !user) return;
+
+    const start = new Date(selectedHabit.created_at);
+    const lastReward = selectedHabit.last_xp_reward ? new Date(selectedHabit.last_xp_reward) : start;
+    
+    // Calculate how many full days passed since the last reward
+    const diffInMs = now.getTime() - lastReward.getTime();
+    const daysToReward = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (daysToReward >= 1) {
+      const xpEarned = daysToReward * 10;
+
+      // 1. Get current user stats (XP and Level)
+      const { data: userData } = await supabase
+        .from('userdata')
+        .select('xp, habits')
+        .eq('id', user.id)
+        .single();
+
+      const newXP = (userData?.xp || 0) + xpEarned;
+      
+      // 2. Update the specific habit's "last reward" timestamp
+      const updatedHabits = userData?.habits.map((h: any) => 
+        h.id === selectedHabit.id ? { ...h, last_xp_reward: new Date().toISOString() } : h
+      );
+
+      // 3. Save everything back to Supabase
+      await supabase.from('userdata').update({ 
+        xp: newXP, 
+        habits: updatedHabits 
+      }).eq('id', user.id);
+
+      Alert.alert("LEVEL UP!", `You stayed disciplined for ${daysToReward} more day(s). +${xpEarned} XP added!`);
+    }
+  };
+
+  
+
   // Get the ID from the previous screen
   const { id } = useLocalSearchParams();
 
@@ -43,10 +82,13 @@ export default function PassiveHabitScreen() {
       .maybeSingle();
     
     const all = data?.habits || [];
+    const selectedHabit = all.find((h: any) => h.id === id);
 
-    // FILTER: Only show the one that matches the ID from the params
-    const selectedHabit = all.filter((h: any) => h.id === id);
-    setHabits(selectedHabit);
+    if (selectedHabit) {
+      setHabits([selectedHabit]);
+      // Run the XP check here
+      checkAndAwardXP(selectedHabit);
+    }
   };
 
   // 3. Stats & Rank Logic
