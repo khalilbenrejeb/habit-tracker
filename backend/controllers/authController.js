@@ -103,7 +103,7 @@ export const validate = async (req, res, next) => {
       throw new NotFoundError('User not found');
     }
 
-    res.json(formatResponse(true, {
+    res.json(formatResponse(traue, {
       user: sanitizeUser(user)
     }, 'Token is valid'));
   } catch (error) {
