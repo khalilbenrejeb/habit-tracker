@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
@@ -6,14 +6,12 @@ import {
   ScrollView, TouchableWithoutFeedback, Keyboard, ActivityIndicator, Alert,
 } from 'react-native';
 
-// 1. SWAP: Removed Native GoogleSignin, added Expo Auth Session
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session';
 import { useAuth } from '../../context/AuthContext'; 
 import { supabase } from '../../supabase';
 import { useTheme } from '../../context/ThemeContext';
 
-// Required for the web popup
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignupScreen() {
@@ -28,32 +26,35 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 2. SETUP: Google Auth Request for Expo Go
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: '217079460112-vkgl0504jhv63oktlqoatvfkaguth35u.apps.googleusercontent.com',
-    iosClientId: '217079460112-99geqe8e42o0a0t10umqcnf38ajrro1o.apps.googleusercontent.com',
-  });
-
-  // 3. LISTEN: Handle the Google Response
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      handleSupabaseGoogleAuth(id_token);
-    }
-  }, [response]);
-
-  const handleSupabaseGoogleAuth = async (idToken: string) => {
+  // MANUALLY TRIGGER THE SAME OAUTH FLOW THAT WORKED IN LOGIN
+  const handleGoogleSignup = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithIdToken({
+      const redirection = AuthSession.makeRedirectUri({ scheme: 'mobileapp' });
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        token: idToken,
+        options: {
+          redirectTo: redirection,
+          skipBrowserRedirect: false,
+        },
       });
 
       if (error) throw error;
-      if (data?.user) await finalizeLogin(data.user);
-    } catch (error: any) {
-      Alert.alert("Google Signup Failed", error.message);
+
+      const res = await WebBrowser.openAuthSessionAsync(data.url, redirection);
+
+      if (res.type === 'success' && res.url) {
+        // Give Supabase a moment to process the session
+        setTimeout(async () => {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session?.user) {
+            await finalizeLogin(sessionData.session.user);
+          }
+        }, 500);
+      }
+    } catch (err) {
+      Alert.alert("Error", "Google Signup failed.");
     } finally {
       setLoading(false);
     }
@@ -61,19 +62,12 @@ export default function SignupScreen() {
 
   const finalizeLogin = async (userData: any) => {
     try {
-      const { data: stats } = await supabase
-        .from('userdata')
-        .select('number_of_logins')
-        .eq('id', userData.id)
-        .single();
-
-      const currentLogins = stats?.number_of_logins || 0;
-
+      // Create user record in your custom table if it doesn't exist
       await supabase
         .from('userdata')
         .upsert({ 
           id: userData.id, 
-          number_of_logins: currentLogins + 1 
+          number_of_logins: 1 
         }, { onConflict: 'id' });
 
       setUser(userData); 
@@ -142,20 +136,19 @@ export default function SignupScreen() {
                 </Text>
               </View>
 
-              {/* 4. MODIFIED: Google Signup for Expo Go */}
               <TouchableOpacity 
                 style={[
                   styles.loginButton, 
                   { backgroundColor: isDarkMode ? '#FFF' : '#1A1A1A', marginTop: 12, flexDirection: 'row', gap: 10 }
                 ]} 
-                onPress={() => promptAsync()}
-                disabled={!request || loading}
+                onPress={handleGoogleSignup}
+                disabled={loading}
               >
                 {loading ? (
                   <ActivityIndicator color={isDarkMode ? "#000" : "#FFF"} />
                 ) : (
                   <Text style={[styles.loginButtonText, { color: isDarkMode ? '#000' : '#FFF' }]}>
-                     Continue with Google
+                       Continue with Google
                   </Text>
                 )}
               </TouchableOpacity> 
@@ -236,7 +229,6 @@ export default function SignupScreen() {
   );
 }
 
-// ... styles remain the same
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
@@ -254,10 +246,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     fontSize: 16,
     borderWidth: 1,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
-      android: { elevation: 2 },
-    }),
   },
   signupButton: {
     height: 55,
@@ -277,7 +265,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    // This adds a slight shadow for Android/iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
