@@ -1,30 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableWithoutFeedback,
-  Keyboard,
-  ActivityIndicator,
-  Alert,
+  StyleSheet, Text, View, TextInput, TouchableOpacity,
+  SafeAreaView, StatusBar, KeyboardAvoidingView, Platform,
+  ScrollView, TouchableWithoutFeedback, Keyboard, ActivityIndicator, Alert,
 } from 'react-native';
-import { useEffect } from 'react';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import { useAuth } from '../../context/AuthContext'; // To set the user globally
+
+// 1. SWAP: Removed Native GoogleSignin, added Expo Auth Session
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { useAuth } from '../../context/AuthContext'; 
 import { supabase } from '../../supabase';
-import { useTheme } from '../../context/ThemeContext'; // Import your hook
+import { useTheme } from '../../context/ThemeContext';
+
+// Required for the web popup
+WebBrowser.maybeCompleteAuthSession();
 
 export default function SignupScreen() {
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
+  const { setUser } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -33,18 +28,37 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-const { setUser } = useAuth();
+  // 2. SETUP: Google Auth Request for Expo Go
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: '217079460112-vkgl0504jhv63oktlqoatvfkaguth35u.apps.googleusercontent.com',
+    iosClientId: '217079460112-99geqe8e42o0a0t10umqcnf38ajrro1o.apps.googleusercontent.com',
+  });
 
-  // Configure Google on Load
+  // 3. LISTEN: Handle the Google Response
   useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: '217079460112-vkgl0504jhv63oktlqoatvfkaguth35u.apps.googleusercontent.com',
-      iosClientId: '217079460112-99geqe8e42o0a0t10umqcnf38ajrro1o.apps.googleusercontent.com',
-      offlineAccess: true,
-    });
-  }, []);
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      handleSupabaseGoogleAuth(id_token);
+    }
+  }, [response]);
 
-  // This handles the database stats after any type of login/signup
+  const handleSupabaseGoogleAuth = async (idToken: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+
+      if (error) throw error;
+      if (data?.user) await finalizeLogin(data.user);
+    } catch (error: any) {
+      Alert.alert("Google Signup Failed", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const finalizeLogin = async (userData: any) => {
     try {
       const { data: stats } = await supabase
@@ -70,51 +84,18 @@ const { setUser } = useAuth();
     }
   };
 
-  const handleGoogleSignup = async () => {
-    setLoading(true);
-    try {
-      await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-      const idToken = response.data?.idToken;
-
-      if (!idToken) throw new Error('No ID token found');
-
-      // Sign into Supabase with the Google Token
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: idToken,
-      });
-
-      if (error) throw error;
-      
-      // If successful, update stats and go to the home screen
-      if (data.user) await finalizeLogin(data.user);
-
-    } catch (error: any) {
-      if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
-        Alert.alert("Google Error", error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSignup = async () => {
-    // 1. Validation
     if (!email || !password || !firstName || !lastName) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
     }
-
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords don't match!");
       return;
     }
 
     setLoading(true);
-
     try {
-      // 2. Create the User in Supabase Auth
       const { data, error: authError } = await supabase.auth.signUp({
         email: email,
         password: password,
@@ -123,7 +104,6 @@ const { setUser } = useAuth();
       if (authError) throw authError;
 
       if (data.user) {
-        // 3. Upload data to your 'users' table
         const { error: dbError } = await supabase
           .from('users')
           .insert([
@@ -132,16 +112,14 @@ const { setUser } = useAuth();
               first_name: firstName,
               last_name: lastName,
               email: email,
-              password: password, // Storing password as requested (Note: Auth handles hashing)
+              password: password, 
             },
           ]);
 
         if (dbError) throw dbError;
-
         Alert.alert("Success!", "Account created successfully.");
         router.push('/login');
       }
-
     } catch (error: any) {
       Alert.alert("Signup Failed", error.message);
     } finally {
@@ -152,10 +130,7 @@ const { setUser } = useAuth();
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-        style={styles.flex}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.inner}>
@@ -166,23 +141,24 @@ const { setUser } = useAuth();
                   Create your account and start tracking progress.
                 </Text>
               </View>
-              {/* Google Signup Button */}
-<TouchableOpacity 
-  style={[
-    styles.loginButton, // Use your existing button style
-    { backgroundColor: isDarkMode ? '#FFF' : '#1A1A1A', marginTop: 12, flexDirection: 'row', gap: 10 }
-  ]} 
-  onPress={handleGoogleSignup}
-  disabled={loading}
->
-  {loading ? (
-    <ActivityIndicator color={isDarkMode ? "#000" : "#FFF"} />
-  ) : (
-    <Text style={[styles.loginButtonText, { color: isDarkMode ? '#000' : '#FFF' }]}>
-       Continue with Google
-    </Text>
-  )}
-</TouchableOpacity> 
+
+              {/* 4. MODIFIED: Google Signup for Expo Go */}
+              <TouchableOpacity 
+                style={[
+                  styles.loginButton, 
+                  { backgroundColor: isDarkMode ? '#FFF' : '#1A1A1A', marginTop: 12, flexDirection: 'row', gap: 10 }
+                ]} 
+                onPress={() => promptAsync()}
+                disabled={!request || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={isDarkMode ? "#000" : "#FFF"} />
+                ) : (
+                  <Text style={[styles.loginButtonText, { color: isDarkMode ? '#000' : '#FFF' }]}>
+                     Continue with Google
+                  </Text>
+                )}
+              </TouchableOpacity> 
 
               <View style={styles.form}>
                 {[
@@ -247,7 +223,7 @@ const { setUser } = useAuth();
 
               <View style={styles.footer}>
                 <Text style={[styles.footerText, { color: colors.subtext }]}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => router.push('/login' as any)}>
+                <TouchableOpacity onPress={() => router.push('/login')}>
                   <Text style={[styles.loginLink, { color: colors.primary }]}>Log In</Text>
                 </TouchableOpacity>
               </View>
@@ -260,6 +236,7 @@ const { setUser } = useAuth();
   );
 }
 
+// ... styles remain the same
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },

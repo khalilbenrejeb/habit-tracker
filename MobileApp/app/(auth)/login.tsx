@@ -5,11 +5,16 @@ import {
   SafeAreaView, StatusBar, KeyboardAvoidingView, Platform,
   TouchableWithoutFeedback, Keyboard, ActivityIndicator, Alert,
 } from 'react-native';
-// 1. New Imports for Google
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+
+// 1. REPLACED: Switched from Native Google Signin to Expo Auth Session
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { supabase } from '../../supabase';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+
+// Required for the web popup to close correctly
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -20,14 +25,39 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 2. Configure Google on Load
+  // 2. NEW: Setup the Google Auth Request for Expo Go
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    // IMPORTANT: Use the WEB Client ID here for Expo Go to work
+    webClientId: '217079460112-vkgl0504jhv63oktlqoatvfkaguth35u.apps.googleusercontent.com',
+    iosClientId: '217079460112-99geqe8e42o0a0t10umqcnf38ajrro1o.apps.googleusercontent.com',
+  });
+
+  // 3. NEW: Listener for the Google Response
   useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: '217079460112-vkgl0504jhv63oktlqoatvfkaguth35u.apps.googleusercontent.com', // Get from Google Console
-      iosClientId: '217079460112-99geqe8e42o0a0t10umqcnf38ajrro1o.apps.googleusercontent.com', // Get from Google Console
-      offlineAccess: true,
-    });
-  }, []);
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      handleSupabaseGoogleAuth(id_token);
+    } else if (response?.type === 'error') {
+      Alert.alert("Google Error", "Failed to connect to Google.");
+    }
+  }, [response]);
+
+  const handleSupabaseGoogleAuth = async (idToken: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+
+      if (error) throw error;
+      if (data?.user) await finalizeLogin(data.user);
+    } catch (error: any) {
+      Alert.alert("Supabase Error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const finalizeLogin = async (userData: any) => {
     try {
@@ -79,45 +109,6 @@ export default function LoginScreen() {
     }
   };
 
-  
-const handleGoogleLogin = async () => {
-  setLoading(true);
-  try {
-    await GoogleSignin.hasPlayServices();
-    const response = await GoogleSignin.signIn() as any; // 'as any' silences TS
-
-    // Check both locations just in case
-    const idToken = response.data?.idToken || response.idToken;
-
-    if (!idToken) {
-      // If we reach here, we got a response but NO token
-      const raw = JSON.stringify(response, null, 2);
-      Alert.alert("Debug: No Token", `Response was received but idToken is missing.\n\nFull Response: ${raw}`);
-      return;
-    }
-
-    const { data, error } = await supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token: idToken,
-    });
-
-    if (error) throw error;
-    if (data?.user) await finalizeLogin(data.user);
-
-  } catch (error: any) {
-    // THIS IS THE KEY: Stringify the entire error object
-    const fullError = JSON.stringify(error, null, 2);
-    
-    console.log("FULL ERROR OBJECT:", fullError);
-    
-    Alert.alert(
-      "Exact Error Found",
-      `Message: ${error.message}\n\nCode: ${error.code}\n\nFull Details: ${fullError}`
-    );
-  } finally {
-    setLoading(false);
-  }
-};
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -150,7 +141,6 @@ const handleGoogleLogin = async () => {
                 onChangeText={setPassword}
               />
               
-              {/* Regular Login Button */}
               <TouchableOpacity 
                 style={[styles.loginButton, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]} 
                 onPress={handleLogin}
@@ -159,14 +149,14 @@ const handleGoogleLogin = async () => {
                 {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.loginButtonText}>Sign In</Text>}
               </TouchableOpacity>
 
-              {/* 4. Google Login Button */}
+              {/* 4. MODIFIED: Google Login Button for Expo Go */}
               <TouchableOpacity 
                 style={[
                   styles.loginButton, 
                   { backgroundColor: isDarkMode ? '#FFF' : '#1A1A1A', marginTop: 12, flexDirection: 'row', gap: 10 }
                 ]} 
-                onPress={handleGoogleLogin}
-                disabled={loading}
+                onPress={() => promptAsync()} 
+                disabled={!request || loading}
               >
                 <Text style={[styles.loginButtonText, { color: isDarkMode ? '#000' : '#FFF' }]}>
                    Continue with Google
@@ -183,7 +173,6 @@ const handleGoogleLogin = async () => {
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
