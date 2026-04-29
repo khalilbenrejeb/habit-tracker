@@ -58,6 +58,7 @@ export default function ProfileScreen() {
 
   const fetchProfileData = async () => {
     try {
+      console.log('user:', JSON.stringify(user))
       setLoading(true);
       const { data, error } = await supabase.from('userdata').select('*').eq('id', user?.id).maybeSingle();
       if (error) throw error;
@@ -172,7 +173,7 @@ export default function ProfileScreen() {
               </View>
             </TouchableOpacity>
 
-            <Text style={[styles.userName, { color: colors.text }]}>{user?.first_name || 'Grinder'}</Text>
+            <Text style={[styles.userName, { color: colors.text }]}>{user?.first_name || user?.user_metadata?.full_name || 'Grinder'}</Text>
             <Text style={[styles.userEmail, { color: colors.subtext }]}>{user?.email}</Text>
 
             {/* 🎮 XP PROGRESS BAR SECTION - Black & Purple Style */}
