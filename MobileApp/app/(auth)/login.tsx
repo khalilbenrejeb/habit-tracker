@@ -26,13 +26,13 @@ export default function LoginScreen() {
     try {
       console.log('🔵 Step 1: Starting Google login...');
       
-      const redirectTo = 'https://tfunpfqsonkbswauuqyd.supabase.co/auth/v1/callback';
+      const redirectTo = 'mobileapp://auth/callback';
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo,
-          skipBrowserRedirect: true,
+          skipBrowserRedirect: false,
         },
       });
 
@@ -56,33 +56,39 @@ export default function LoginScreen() {
       console.log('🟢 Step 3 - Browser result:', JSON.stringify(res));
 
       if (res.type === 'success') {
-        console.log('🔵 Step 4: Browser success, checking session...');
+        console.log('🔵 Step 4: Browser success, setting session...');
         
-        let attempts = 0;
-        const interval = setInterval(async () => {
-          attempts++;
-          try {
-            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        try {
+          // Extract tokens from URL hash
+          const hashParams = new URLSearchParams(res.url.split('#')[1]);
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            console.log('🟢 Found tokens in URL, setting session...');
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
             
-            if (sessionError) {
-              console.log(`🔴 Attempt ${attempts} - Session error:`, sessionError.message);
-            }
-
-            if (sessionData?.session?.user) {
-              clearInterval(interval);
-              console.log('🟢 Step 5: Got user:', sessionData.session.user.email);
-              await finalizeLogin(sessionData.session.user);
-            } else if (attempts >= 10) {
-              clearInterval(interval);
+            if (error) {
+              console.log('🔴 Failed to set session:', error.message);
               setLoading(false);
-              console.log('🔴 Step 5 FAILED - No session after 10 attempts:', JSON.stringify(sessionData));
-            } else {
-              console.log(`🟡 Attempt ${attempts} - No session yet...`);
+              return;
             }
-          } catch (pollErr: any) {
-            console.log(`🔴 Poll attempt ${attempts} crashed:`, pollErr?.message ?? JSON.stringify(pollErr));
+            
+            if (data?.user) {
+              console.log('🟢 Step 5: Got user:', data.user.email);
+              await finalizeLogin(data.user);
+            }
+          } else {
+            console.log('🔴 No tokens found in URL');
+            setLoading(false);
           }
-        }, 1000);
+        } catch (pollErr: any) {
+          console.log('🔴 Session setup crashed:', pollErr?.message ?? JSON.stringify(pollErr));
+          setLoading(false);
+        }
 
       } else if (res.type === 'cancel') {
         console.log('🟡 Step 3 - User closed the browser');
@@ -103,22 +109,78 @@ export default function LoginScreen() {
     try {
       console.log('🔵 FinalizeLogin: user:', userData.email);
       
+      // Check if user exists in users table
       const { data: existing, error: fetchError } = await supabase
-        .from('userdata')
-        .select('number_of_logins')
+        .from('users')
+        .select('id')
         .eq('id', userData.id)
         .single();
 
-      if (fetchError) console.log('🟡 Userdata fetch error (might be new user):', fetchError.message);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.log('🟡 User fetch error:', fetchError.message);
+      }
 
-      const { error: upsertError } = await supabase
-        .from('userdata')
-        .upsert({ 
-          id: userData.id,
-          number_of_logins: (existing?.number_of_logins ?? 0) + 1,
-        }, { onConflict: 'id' });
+      // If user doesn't exist, create them
+      if (!existing) {
+        console.log('🔵 New user, creating in users and userdata tables...');
+        
+        // Parse name from full_name
+        const fullName = userData.user_metadata?.full_name || userData.email.split('@')[0];
+        const nameParts = fullName.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        const avatarUrl = userData.user_metadata?.picture || null;
 
-      if (upsertError) console.log('🔴 Userdata upsert error:', upsertError.message);
+        // Insert into users table
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: userData.id,
+            first_name: firstName,
+            last_name: lastName,
+            email: userData.email,
+            password: null, // Google auth, no password
+          });
+
+        if (userError) {
+          console.log('🔴 Error inserting user:', userError.message);
+        } else {
+          console.log('🟢 User created in users table');
+        }
+
+        // Insert into userdata table
+        const { error: userdataError } = await supabase
+          .from('userdata')
+          .insert({
+            id: userData.id,
+            avatar_url: avatarUrl,
+          });
+
+        if (userdataError) {
+          console.log('🔴 Error inserting userdata:', userdataError.message);
+        } else {
+          console.log('🟢 User created in userdata table with avatar:', avatarUrl);
+        }
+      } else {
+        console.log('🟢 Existing user, updating login count...');
+        
+        // Update login count in userdata
+        const { data: userdataExisting } = await supabase
+          .from('userdata')
+          .select('number_of_logins')
+          .eq('id', userData.id)
+          .single();
+
+        const { error: upsertError } = await supabase
+          .from('userdata')
+          .upsert({ 
+            id: userData.id,
+            number_of_logins: (userdataExisting?.number_of_logins ?? 0) + 1,
+          }, { onConflict: 'id' });
+
+        if (upsertError) console.log('🔴 Userdata upsert error:', upsertError.message);
+      }
 
       console.log('🟢 FinalizeLogin done, navigating...');
       setUser(userData); 
