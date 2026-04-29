@@ -27,55 +27,23 @@ export default function Assistant() {
   const API_KEY = process.env.EXPO_PUBLIC_GEMINI_KEY;
 
   const getAIResponse = async (userText: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-  `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{ 
-          text: `You are the Daily Grind AI coach. 
-                 Keep it short, hype the user up, and use emojis. 
-                 User message: ${userText}` 
-        }]
-      }]
-    })
+  setLoading(true);
+  try {
+    const response = await fetch("http://192.168.50.64:8000/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: userText }),
+    });
+
+    const data = await response.json();
+    setMessages(prev => [...prev, { id: `bot-${Date.now()}`, text: data.reply, sender: "bot" }]);
+
+  } catch (err: any) {
+    setMessages(prev => [...prev, { id: `err-${Date.now()}`, text: "Connection lost. Try again! ⚡", sender: "bot" }]);
+  } finally {
+    setLoading(false);
   }
-);
-
-      const data = await response.json();
-
-      // Check if Google sent an error (like 400, 403, etc.)
-      if (data.error) {
-        console.error("GOOGLE API ERROR:", data.error.message);
-        throw new Error(data.error.message);
-      }
-
-      // Check if the response was blocked by safety filters
-      const candidate = data?.candidates?.[0];
-      if (candidate?.finishReason === "SAFETY") {
-        const botMsg = "I can't talk about that. Let's stay focused on your goals! 🎯";
-        setMessages(prev => [...prev, { id: `bot-${Date.now()}`, text: botMsg, sender: 'bot' }]);
-        return;
-      }
-
-      const botResponse = candidate?.content?.parts?.[0]?.text || "I'm stuck... try asking that differently! 🤔";
-      setMessages(prev => [...prev, { id: `bot-${Date.now()}`, text: botResponse.trim(), sender: 'bot' }]);
-
-    } catch (err: any) {
-      console.error("FETCH ERROR:", err);
-      const errorMsg = err.message.includes("API key not valid") 
-        ? "Invalid API Key. Check your setup! 🔑" 
-        : "Connection lost. Try again! ⚡";
-        
-      setMessages(prev => [...prev, { id: `err-${Date.now()}`, text: errorMsg, sender: 'bot' }]);
-    } finally {
-      setLoading(false);
-    }
-  };
+};
 
   const handleSend = () => {
     if (!inputText.trim() || loading) return;
