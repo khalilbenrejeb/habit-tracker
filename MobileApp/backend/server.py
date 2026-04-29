@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-load_dotenv("../.env")  # goes up one folder to root
+load_dotenv("../../.env")  # goes up two folders to root
 
 # ── run with: uvicorn server:app --reload ─────────────────────────────────────
 # ── set env:  export GEMINI_API_KEY=your_key_here ─────────────────────────────
