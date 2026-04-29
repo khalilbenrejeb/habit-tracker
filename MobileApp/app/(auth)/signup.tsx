@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
-  StyleSheet, Text, View, TextInput, TouchableOpacity,
-  SafeAreaView, StatusBar, KeyboardAvoidingView, Platform,
-  ScrollView, TouchableWithoutFeedback, Keyboard, ActivityIndicator, Alert,
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
-
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-import { useAuth } from '../../context/AuthContext'; 
 import { supabase } from '../../supabase';
-import { useTheme } from '../../context/ThemeContext';
-
-WebBrowser.maybeCompleteAuthSession();
+import { useTheme } from '../../context/ThemeContext'; // Import your hook
 
 export default function SignupScreen() {
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
-  const { setUser } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -26,70 +30,22 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // MANUALLY TRIGGER THE SAME OAUTH FLOW THAT WORKED IN LOGIN
-  const handleGoogleSignup = async () => {
-    setLoading(true);
-    try {
-      const redirection = AuthSession.makeRedirectUri({ scheme: 'mobileapp' });
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirection,
-          skipBrowserRedirect: false,
-        },
-      });
-
-      if (error) throw error;
-
-      const res = await WebBrowser.openAuthSessionAsync(data.url, redirection);
-
-      if (res.type === 'success' && res.url) {
-        // Give Supabase a moment to process the session
-        setTimeout(async () => {
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session?.user) {
-            await finalizeLogin(sessionData.session.user);
-          }
-        }, 500);
-      }
-    } catch (err) {
-      Alert.alert("Error", "Google Signup failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const finalizeLogin = async (userData: any) => {
-    try {
-      // Create user record in your custom table if it doesn't exist
-      await supabase
-        .from('userdata')
-        .upsert({ 
-          id: userData.id, 
-          number_of_logins: 1 
-        }, { onConflict: 'id' });
-
-      setUser(userData); 
-      router.replace('/(tabs)'); 
-    } catch (err) {
-      setUser(userData); 
-      router.replace('/(tabs)');
-    }
-  };
-
   const handleSignup = async () => {
+    // 1. Validation
     if (!email || !password || !firstName || !lastName) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
     }
+
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords don't match!");
       return;
     }
 
     setLoading(true);
+
     try {
+      // 2. Create the User in Supabase Auth
       const { data, error: authError } = await supabase.auth.signUp({
         email: email,
         password: password,
@@ -98,6 +54,7 @@ export default function SignupScreen() {
       if (authError) throw authError;
 
       if (data.user) {
+        // 3. Upload data to your 'users' table
         const { error: dbError } = await supabase
           .from('users')
           .insert([
@@ -106,14 +63,16 @@ export default function SignupScreen() {
               first_name: firstName,
               last_name: lastName,
               email: email,
-              password: password, 
+              password: password, // Storing password as requested (Note: Auth handles hashing)
             },
           ]);
 
         if (dbError) throw dbError;
+
         Alert.alert("Success!", "Account created successfully.");
         router.push('/login');
       }
+
     } catch (error: any) {
       Alert.alert("Signup Failed", error.message);
     } finally {
@@ -124,7 +83,10 @@ export default function SignupScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={styles.flex}
+      >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View style={styles.inner}>
@@ -135,23 +97,6 @@ export default function SignupScreen() {
                   Create your account and start tracking progress.
                 </Text>
               </View>
-
-              <TouchableOpacity 
-                style={[
-                  styles.loginButton, 
-                  { backgroundColor: isDarkMode ? '#FFF' : '#1A1A1A', marginTop: 12, flexDirection: 'row', gap: 10 }
-                ]} 
-                onPress={handleGoogleSignup}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color={isDarkMode ? "#000" : "#FFF"} />
-                ) : (
-                  <Text style={[styles.loginButtonText, { color: isDarkMode ? '#000' : '#FFF' }]}>
-                       Continue with Google
-                  </Text>
-                )}
-              </TouchableOpacity> 
 
               <View style={styles.form}>
                 {[
@@ -216,7 +161,7 @@ export default function SignupScreen() {
 
               <View style={styles.footer}>
                 <Text style={[styles.footerText, { color: colors.subtext }]}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => router.push('/login')}>
+                <TouchableOpacity onPress={() => router.push('/login' as any)}>
                   <Text style={[styles.loginLink, { color: colors.primary }]}>Log In</Text>
                 </TouchableOpacity>
               </View>
@@ -246,6 +191,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     fontSize: 16,
     borderWidth: 1,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+      android: { elevation: 2 },
+    }),
   },
   signupButton: {
     height: 55,
@@ -259,21 +208,4 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 30, marginBottom: 20 },
   footerText: { fontSize: 15 },
   loginLink: { fontWeight: '700', fontSize: 15 },
-  loginButton: {
-    height: 55,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
 });
