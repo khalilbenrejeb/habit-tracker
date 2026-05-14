@@ -231,7 +231,7 @@ export default function LoginScreen() {
 
             <View style={styles.form}>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.card, borderColor: colors.divider }]}
+                style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.divider }]}
                 placeholder="Email Address"
                 placeholderTextColor={colors.subtext}
                 value={email}
@@ -276,16 +276,40 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#FFF' }, // Added white background for visibility
   flex: { flex: 1 },
   inner: { flex: 1, paddingHorizontal: 30, justifyContent: 'center' },
   header: { alignItems: 'center', marginBottom: 40 },
-  logoPlaceholder: { width: 80, height: 80, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  logoPlaceholder: { 
+    width: 80, 
+    height: 80, 
+    borderRadius: 25, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginBottom: 20,
+    backgroundColor: '#000' // Added background so white logoText shows up
+  },
   logoText: { color: '#FFF', fontSize: 28, fontWeight: '800' },
-  titleText: { fontSize: 28, fontWeight: '800', marginBottom: 8 },
-  subtitleText: { fontSize: 16, textAlign: 'center' },
+  titleText: { color: '#000', fontSize: 28, fontWeight: '800', marginBottom: 8 },
+  subtitleText: { color: '#666', fontSize: 16, textAlign: 'center' },
   form: { width: '100%' },
-  input: { height: 55, borderRadius: 16, paddingHorizontal: 20, fontSize: 16, borderWidth: 1 },
-  loginButton: { height: 55, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
+  input: { 
+    height: 55, 
+    borderRadius: 16, 
+    paddingHorizontal: 20, 
+    fontSize: 16, 
+    borderWidth: 1, 
+    borderColor: '#CCC',
+    color: '#000', // This fixes the typing color
+    backgroundColor: '#F9F9F9' 
+  },
+  loginButton: { 
+    height: 55, 
+    borderRadius: 16, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginTop: 20,
+    backgroundColor: '#000' 
+  },
   loginButtonText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
 });

@@ -160,7 +160,9 @@ async function playLevelUpSound() {
 };
 
   const isToday = (dateString: string) => {
-    if (!dateString) return false;
+    if (!dateString) {
+      
+      return false;}
     const d = new Date(dateString);
     const today = new Date();
     return d.getDate() === today.getDate() && d.getMonth() === today.getMonth();

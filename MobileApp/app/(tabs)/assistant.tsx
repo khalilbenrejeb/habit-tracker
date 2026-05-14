@@ -23,27 +23,40 @@ export default function Assistant() {
   ]);
   
   const scrollViewRef = useRef<ScrollView>(null);
-  // ⚠️ GENERATE A NEW KEY AND PUT IT HERE 
-  const API_KEY = process.env.EXPO_PUBLIC_GEMINI_KEY;
+
+  // 💡 PRO TIP: Put your backend URL in a config file later.
+  // If using Android Emulator, use "http://10.0.2.2:8000"
+  // If using a physical phone, use your computer's local IP (like you had)
+  const BACKEND_URL = "http://192.168.1.5:8000/chat";
 
   const getAIResponse = async (userText: string) => {
-  setLoading(true);
-  try {
-    const response = await fetch("http://192.168.50.64:8000/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: userText }),
-    });
+    setLoading(true);
+    try {
+      const response = await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userText }),
+      });
 
-    const data = await response.json();
-    setMessages(prev => [...prev, { id: `bot-${Date.now()}`, text: data.reply, sender: "bot" }]);
+      if (!response.ok) throw new Error("Server error");
 
-  } catch (err: any) {
-    setMessages(prev => [...prev, { id: `err-${Date.now()}`, text: "Connection lost. Try again! ⚡", sender: "bot" }]);
-  } finally {
-    setLoading(false);
-  }
-};
+      const data = await response.json();
+      setMessages(prev => [...prev, { 
+        id: `bot-${Date.now()}`, 
+        text: data.reply, 
+        sender: "bot" 
+      }]);
+
+    } catch (err) {
+      setMessages(prev => [...prev, { 
+        id: `err-${Date.now()}`, 
+        text: "Connection lost. Make sure your Python server is running! ⚡", 
+        sender: "bot" 
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSend = () => {
     if (!inputText.trim() || loading) return;
